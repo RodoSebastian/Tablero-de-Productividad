@@ -1,0 +1,2395 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tablero Ágil — Semana</title>
+  <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAIlSURBVHhe7Zs9jhNBEMdfxwARiQgFjuAAHIAzIHEGjBQJkBwAGQkSOANG4hCcgBCJg4hgwVos2/F6bFf1fM30vk9qm21/XfOr6untHwB+2t3d3U9FUXwviqI4L4ri/nQ6fTi/v/9V52G32+1/8vPj6XT64fL6+k+dp12SJP+8KIrP0+n06+X19Y86T7tJkvz1oijetF+eTqcfL6+v/9V52BVF8aX98mo6nX66vL7+VedhlyTJV/tN/Pb29tfl9fXvOg+79k1w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBHdamO/4oP3y9PL6+k+dh939/f2X9svLy+vrf3UedkmSfG2/vLy8vv5X52H3B4m9/eKCOA9CAAAAAElFTkSuQmCC">
+    <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+  input[type="range"] {
+    appearance: none;
+    height: 6px;
+    border-radius: 5px;
+    background: linear-gradient(to right, #f87171 0%, #facc15 50%, #4ade80 100%);
+    outline: none;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid #3b82f6;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid #3b82f6;
+    cursor: pointer;
+  }
+
+  .drag-over {
+  background-color: #e0f2fe !important;
+  border: 2px dashed #3b82f6 !important;
+  }
+
+  /* Campos colapsables de impacto y urgencia */
+  #leaderTasks textarea,
+  #todayTasks textarea {
+    transition: all 0.2s ease;
+    background: #fffbea;
+  }
+
+  button.text-xs.text-gray-500.underline {
+    transition: color 0.2s ease;
+  }
+  button.text-xs.text-gray-500.underline:hover {
+    color: #2563eb;
+  }
+  
+  button.text-xs.text-gray-500.underline::before {
+    content: "▶ ";
+    transition: transform 0.2s ease;
+  }
+
+  button.text-xs.text-gray-500.underline.active::before {
+    content: "▼ ";
+  }
+  /* 👇 Ocultar flechas (spinners) en inputs numéricos */
+  input[type=number]::-webkit-inner-spin-button, 
+  input[type=number]::-webkit-outer-spin-button { 
+    -webkit-appearance: none; 
+    margin: 0; 
+  }
+  input[type=number] {
+    -moz-appearance: textfield;
+  }
+</style>
+
+</head>
+<body class="bg-gray-100 text-gray-900">
+  <div class="max-w-7xl mx-auto py-6">
+    <header class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold">📅 Tablero Ágil — Semana</h1>
+      <div class="space-x-2">
+        <button id="importBtn" class="px-3 py-1 bg-gray-200 rounded">⬆️ Importar</button>
+        <input type="file" id="importFile" class="hidden" accept="application/json">
+        <button id="exportBtn" class="px-3 py-1 bg-blue-600 text-white rounded">⬇️ Exportar</button>
+        <!-- 👇 Nuevo botón cerrar semana -->
+        <button onclick="closeWeek()" class="px-3 py-1 bg-red-500 text-white rounded">📅 Cerrar semana</button>
+      </div>
+    </header>
+
+<!-- Tabs -->
+<div class="mb-4">
+  <button class="tab-btn px-3 py-1 bg-blue-500 text-white rounded" data-tab="today">Hoy</button>
+  <button class="tab-btn px-3 py-1 bg-gray-200 rounded" data-tab="week">Semana</button>
+  <button class="tab-btn px-3 py-1 bg-gray-200 rounded" data-tab="report">Reporte</button>
+  <button class="tab-btn px-3 py-1 bg-gray-200 rounded" data-tab="team">Equipo</button>
+  <!-- 👇 Nuevos -->
+  <button class="tab-btn px-3 py-1 bg-gray-200 rounded" data-tab="objectives">🎯 Objetivos & KPIs</button>
+  <button class="tab-btn px-3 py-1 bg-gray-200 rounded" data-tab="controls">📋 Controles</button>
+</div>
+
+<!-- Vista Objetivos & KPIs -->
+  <div id="tab-objectives" class="tab-content hidden px-4">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-semibold text-gray-700">🎯 Objetivos Anuales</h2>
+      <button onclick="addAnnualObjective()" class="px-3 py-1 bg-blue-500 text-white rounded text-sm shadow hover:bg-blue-600">+ Nuevo Objetivo</button>
+    </div>
+    
+    <ul id="annualObjectivesList" class="space-y-3"></ul>
+
+    <h3 class="text-lg font-semibold mt-8 mb-2 text-gray-700 flex items-center">
+      📜 Historial de avances
+    </h3>
+    <div id="annualObjectivesHistory" class="space-y-2"></div>
+
+    <div class="flex justify-between items-center mt-10 mb-4 border-t pt-6">
+      <h2 class="text-xl font-semibold text-gray-700">📊 KPIs</h2>
+      <button onclick="addKPI()" class="px-3 py-1 bg-indigo-500 text-white rounded text-sm shadow hover:bg-indigo-600">+ Nuevo KPI</button>
+    </div>
+    <ul id="kpisList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></ul>
+  </div>
+
+<!-- Vista Controles -->
+  <div id="tab-controls" class="tab-content hidden px-4">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-semibold text-gray-700">📋 Controles Recurrentes</h2>
+      <button onclick="addRecurringControl()" class="px-3 py-1 bg-green-500 text-white rounded text-sm shadow hover:bg-green-600 transition-colors">+ Nuevo Control</button>
+    </div>
+    
+    <ul id="controlsList" class="space-y-3"></ul>
+
+    <h3 class="text-lg font-semibold mt-8 mb-2 text-gray-700 flex items-center">
+      📜 Historial de ejecuciones
+    </h3>
+    <div id="controlsHistory" class="space-y-2"></div>
+  </div>
+
+<!-- 🔹 Modal Control -->
+<div id="controlModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center">
+  <div class="bg-white rounded-lg shadow-lg w-96 p-6">
+    <h2 class="text-lg font-semibold mb-4">📋 Actualizar Control</h2>
+    <p id="controlModalTitle" class="text-sm text-gray-600 mb-2"></p>
+    <select id="controlResultInput" class="w-full border p-2 rounded mb-2">
+      <option value="OK">✅ OK</option>
+      <option value="GAP">⚠️ GAP</option>
+    </select>
+    <textarea id="controlNoteInput" class="w-full p-2 border rounded h-24 mb-2" placeholder="Comentario..."></textarea>
+    <div class="flex justify-end space-x-2">
+      <button onclick="closeControlModal()" class="px-3 py-1 bg-gray-200 rounded">Cancelar</button>
+      <button onclick="saveControlExecution()" class="px-3 py-1 bg-green-500 text-white rounded">Guardar</button>
+    </div>
+  </div>
+</div>
+    <!-- Vista Hoy -->
+    <div id="tab-today" class="tab-content">
+      <h2 class="text-xl font-semibold mb-4">Tareas de Hoy</h2>
+
+      <div id="todayHighlight" class="mb-4 p-3 bg-yellow-100 border-l-4 border-yellow-500 font-semibold">
+        Highlight del día: <span id="highlightText">(sin definir)</span>
+      </div>
+
+      <div id="todayTasks" class="space-y-2"></div>
+
+      <!-- Nuevas tareas rápidas -->
+      <h3 class="mt-6 font-semibold">➕ Nuevas tareas de hoy</h3>
+      <div class="flex space-x-2 mb-2">
+        <input id="newTodayTask" type="text" placeholder="Escribir nueva tarea..." class="flex-1 px-2 py-1 border rounded" onkeydown="handleEnter(event, addTodayNew)">
+        
+        <select id="newTodayPriority" class="px-2 py-1 border rounded">
+          <option value="alta">Alta prioridad</option>
+          <option value="media">Media prioridad</option>
+          <option value="baja">Baja prioridad</option>
+        </select>
+
+        <select id="newTodayObjective" class="px-2 py-1 border rounded">
+          <option value="Windows 11">Windows 11</option>
+          <option value="PDCZ">PDCZ</option>
+          <option value="Makro">Makro</option>
+          <option value="TFM">TFM</option>
+          <option value="Software Selection">Software Selection</option>
+          <option value="Administrativas">Administrativas</option>
+          <option value="General">General</option>
+        </select>
+
+        <button onclick="addTodayNew()" class="px-3 py-1 bg-blue-500 text-white rounded">Agregar</button>
+      </div>
+
+      <!-- Retro diaria -->
+      <h3 class="mt-6 font-semibold">📝 Retro diaria</h3>
+      <textarea id="dailyRetro" class="w-full p-2 border rounded h-24 mb-2" placeholder="Conclusiones del día..." onkeydown="handleEnter(event, saveDailyRetro)"></textarea>
+      <button onclick="saveDailyRetro()" class="px-3 py-1 bg-green-500 text-white rounded">Guardar Retro</button>
+
+      <!-- Aprendizajes -->
+      <h3 class="mt-6 font-semibold">📚 Aprendizajes</h3>
+      <div class="flex space-x-2 mb-2">
+        <textarea id="newAprendizaje" placeholder="Nuevo aprendizaje..." class="flex-1 px-2 py-1 border rounded text-sm" onkeydown="handleEnter(event, addAprendizaje)"></textarea>
+        <button onclick="addAprendizaje()" class="px-3 py-1 bg-blue-500 text-white rounded">Agregar</button>
+      </div>
+      <div id="aprendizajesList" class="space-y-1"></div>
+
+      <!-- Experimentos -->
+      <h3 class="mt-6 font-semibold">🧪 Experimentos</h3>
+      <div class="flex space-x-2 mb-2">
+        <textarea id="newExperimento" placeholder="Nuevo experimento..." class="flex-1 px-2 py-1 border rounded text-sm" onkeydown="handleEnter(event, addExperimento)"></textarea>
+        <button onclick="addExperimento()" class="px-3 py-1 bg-blue-500 text-white rounded">Agregar</button>
+      </div>
+      <div id="experimentosList" class="space-y-1"></div>
+    </div>
+
+    <!-- Vista Semana -->
+      <div id="tab-week" class="tab-content hidden">
+        <h2 class="text-xl font-semibold mb-4">Tareas de la Semana</h2>
+        <div id="weekTasks" class="grid grid-cols-1 md:grid-cols-6 gap-4"></div>
+
+        <h3 class="text-lg font-semibold mt-6 flex items-center">📌 Temas para Staff</h3>
+        <div class="flex space-x-2 mb-3">
+          <input id="newStaffTopic" type="text" placeholder="Nuevo tema para Staff..." class="flex-1 px-2 py-1 border rounded text-sm" onkeydown="handleEnter(event, () => addTopic('staffTopics'))">
+          <button onclick="addTopic('staffTopics')" class="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 transition-colors">Agregar</button>
+        </div>
+        <div id="staffTopicsList" class="space-y-2 mb-6"></div>
+
+        <h3 class="text-lg font-semibold mt-6 flex items-center">👤 Temas para 1:1 con mi gerente</h3>
+        <div class="flex space-x-2 mb-3">
+          <input id="newOneToOne" type="text" placeholder="Nuevo tema para 1:1..." class="flex-1 px-2 py-1 border rounded text-sm" onkeydown="handleEnter(event, () => addTopic('oneToOneTopics'))">
+          <button onclick="addTopic('oneToOneTopics')" class="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 transition-colors">Agregar</button>
+        </div>
+        <div id="oneToOneList" class="space-y-2 mb-6"></div>
+
+        <h3 class="text-lg font-semibold mt-6">📒 Histórico semanal</h3>
+        <ul id="weeklyHistory" class="list-disc pl-5 text-sm"></ul>
+
+        <h3 class="text-lg font-semibold mt-6">📝 Resumen semanal</h3>
+        <textarea id="weeklySummary" class="w-full p-2 border rounded h-24" placeholder="Conclusiones y próximos pasos..."></textarea>
+      </div>
+    <!-- 👇 ACÁ PEGÁS EL NUEVO BLOQUE -->
+    <!-- Vista Reporte -->
+    <div id="tab-report" class="tab-content hidden">
+      <h2 class="text-xl font-semibold mb-4">📊 Reporte Consolidado</h2>
+      <ul id="reportLog" class="list-none space-y-4"></ul>
+      <h3 class="text-lg font-semibold mt-6">📂 Historial de tareas completadas</h3>
+      <ul id="historyTasksList" class="list-none space-y-2"></ul>
+    </div>
+    <!-- 👇 Bloque de KPIs y gráficos -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
+      <div class="bg-white p-4 rounded shadow text-center">
+        <div class="text-2xl font-bold text-blue-600" id="kpiTotal">0</div>
+        <div class="text-sm text-gray-500">Tareas totales</div>
+      </div>
+      <div class="bg-white p-4 rounded shadow text-center">
+        <div class="text-2xl font-bold text-green-600" id="kpiCompletadas">0</div>
+        <div class="text-sm text-gray-500">Completadas</div>
+      </div>
+      <div class="bg-white p-4 rounded shadow text-center">
+        <div class="text-2xl font-bold text-yellow-600" id="kpiAtrasadas">0</div>
+        <div class="text-sm text-gray-500">Atrasadas</div>
+      </div>
+      <div class="bg-white p-4 rounded shadow text-center">
+        <div class="text-2xl font-bold text-purple-600" id="kpiPct">0%</div>
+        <div class="text-sm text-gray-500">% Completadas</div>
+      </div>
+    </div>
+
+    <!-- Vista Equipo -->
+    <div id="tab-team" class="tab-content hidden">
+      <h2 class="text-xl font-semibold mb-4">👥 Tareas del Equipo</h2>
+
+      <div id="teamTasks" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+
+      <h3 class="text-lg font-semibold mt-6">📊 Resumen del Equipo</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+        <div class="bg-white p-4 rounded shadow text-center">
+          <div class="text-2xl font-bold text-blue-600" id="teamTotal">0</div>
+          <div class="text-sm text-gray-500">Tareas delegadas</div>
+        </div>
+        <div class="bg-white p-4 rounded shadow text-center">
+          <div class="text-2xl font-bold text-green-600" id="teamDone">0</div>
+          <div class="text-sm text-gray-500">Completadas</div>
+        </div>
+        <div class="bg-white p-4 rounded shadow text-center">
+          <div class="text-2xl font-bold text-purple-600" id="teamPct">0%</div>
+          <div class="text-sm text-gray-500">% Éxito</div>
+        </div>
+      </div>
+        <!-- 👇 acá va el progreso detallado -->
+        <div id="teamProgress" class="mt-4 text-sm text-gray-600"></div>
+    </div>
+
+    <!-- 👇 Gráficos -->
+    <div class="grid grid-cols-1 gap-8 mt-8">
+      <div class="bg-white p-6 rounded shadow">
+        <h3 class="text-lg font-semibold mb-2">📈 Velocidad semanal</h3>
+        <canvas id="velocityChart" class="h-96"></canvas>
+      </div>
+
+      <div class="bg-white p-6 rounded shadow">
+        <h3 class="text-lg font-semibold mb-2">🎯 Avance por prioridad</h3>
+        <canvas id="priorityChart" class="h-72"></canvas>
+      </div>
+
+      <div class="bg-white p-6 rounded shadow">
+        <h3 class="text-lg font-semibold mb-2">⏳ Tareas atrasadas</h3>
+        <canvas id="lateChart" class="h-72"></canvas>
+      </div>
+
+      <div class="bg-white p-6 rounded shadow">
+        <h3 class="text-lg font-semibold mb-2">🏆 Avance por objetivo</h3>
+        <canvas id="objectiveChart" class="h-72"></canvas>
+      </div>
+
+      <div class="bg-white p-6 rounded shadow md:col-span-2">
+        <h3 class="text-lg font-semibold mb-2">📊 Evolución histórica % completadas</h3>
+        <canvas id="trendChart" class="h-96"></canvas>
+      </div>
+    </div>
+  </div>
+<!-- MODAL DE NOTA FINAL -->
+<div id="finalNoteModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-[10000]">
+    <div class="bg-white rounded-lg shadow-lg w-96 p-6">
+      <h2 class="text-lg font-semibold mb-2">📝 Nota final de la tarea</h2>
+      <p id="finalNoteTaskTitle" class="text-sm text-gray-600 mb-2 truncate"></p>
+      <textarea id="finalNoteInput" class="w-full p-2 border rounded h-24 text-sm" 
+                placeholder="Escribí una nota final..." 
+                onkeydown="handleEnter(event, saveFinalNote)"></textarea>
+      
+      <div class="flex justify-end space-x-2 mt-4">
+        <button onclick="closeFinalNoteModal()" class="px-3 py-1 bg-gray-200 rounded">Cancelar</button>
+        <button onclick="saveFinalNote()" class="px-3 py-1 bg-green-500 text-white rounded">Guardar</button>
+      </div>
+    </div>
+  </div>
+<!-- Modal de actividad -->
+  <div id="activityModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-[10000] items-center justify-center">
+    <div class="bg-white p-4 rounded-lg shadow-lg w-96 relative">
+      <h3 class="text-lg font-semibold mb-2 activity-title">📝 Registrar actividad</h3>
+      <textarea id="activityModalInput" class="w-full border rounded p-2 mb-3 text-sm focus:ring focus:ring-blue-200" 
+                rows="3" placeholder="Describe brevemente el avance..." 
+                onkeydown="handleEnter(event, saveActivity)"></textarea>
+
+      <div class="flex justify-end space-x-2">
+        <button onclick="closeActivityModal()" class="px-3 py-1 bg-gray-200 rounded">Cancelar</button>
+        <button onclick="saveActivity()" class="px-3 py-1 bg-blue-500 text-white rounded">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+let data = {
+  week: { Mon: [], Tue: [], Wed: [], Thu: [], Fri: [], Next: [] },
+  staffTopics: [],
+  oneToOneTopics: [],
+  history: [],
+  summary: "",
+  highlight: null,
+  aprendizajes: [],
+  experimentos: [],
+  objectives: [
+    { name: "Windows 11", completed: 0, total: 0 },
+    { name: "PDCZ", completed: 0, total: 0 },
+    { name: "Makro", completed: 0, total: 0 },
+    { name: "TFM", completed: 0, total: 0 }
+  ],
+  // 👇 nuevos módulos
+  annualObjectives: [],
+  kpis: [],
+  recurringControls: []
+};
+const days = { 
+  Mon: "Lunes", 
+  Tue: "Martes", 
+  Wed: "Miércoles", 
+  Thu: "Jueves", 
+  Fri: "Viernes",
+  Next: "Próxima semana"   // 👈 nueva columna
+};
+// 👇 SOLO UNA VEZ, ACA
+let charts = {}; // guarda las instancias activas de Chart.js
+
+function renderTeam() {
+  const container = document.getElementById("teamTasks");
+  container.innerHTML = "";
+
+  let total = 0, completadas = 0, progreso = 0;
+
+  // 🔹 Recorremos tareas activas en la semana (solo delegadas)
+  Object.keys(data.week).forEach(day => {
+    (data.week[day] || []).forEach((t) => {
+      if (t.delegated) {
+        total++;
+        progreso += (t.progress || 0);
+        if (t.progress === 100) completadas++;
+
+        // 🎨 Determinar color por estado
+        const bgClass = t.progress === 100
+          ? "bg-green-50 border-green-200"
+          : "bg-white border-gray-200";
+
+        // 💬 Tarjeta de tarea del equipo
+        container.innerHTML += `
+          <div class="p-3 ${bgClass} border rounded shadow-sm mb-2 hover:shadow-md transition-all">
+            <div class="flex justify-between items-start">
+              <div>
+                <div class="font-medium text-gray-800">${t.title}</div>
+                ${t.objective ? `<div class="text-xs text-gray-500 mt-0.5">🎯 ${t.objective}</div>` : ""}
+                ${t.assignedTo ? `<div class="text-xs text-gray-500">👤 ${t.assignedTo}</div>` : ""}
+                ${t.delayed ? `<span class="text-[10px] bg-red-100 text-red-700 px-1 rounded border border-red-200">Retrasada</span>` : ""}
+              </div>
+
+              <div class="flex items-center space-x-1">
+                <div class="relative flex items-center group">
+                    <input type="number" min="0" max="100" value="${t.progress || 0}"
+                           onchange="updateTaskProgress('${day}', '${t.id}', this.value)"
+                           class="w-10 text-center text-xs font-semibold border rounded h-7 focus:ring-0 outline-none">
+                    <span class="text-[10px] text-gray-400 ml-0.5">%</span>
+                </div>
+
+                <button onclick="openActivityModal('${day}', '${t.id}')"
+                        class="h-7 px-2 text-xs bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 rounded transition-colors"
+                        title="Registrar Actividad">+Act</button>
+                
+                <button onclick="deleteTeamTask('${day}', '${t.id}')"
+                        class="h-7 w-7 flex items-center justify-center text-xs bg-red-50 text-red-500 border border-red-100 hover:bg-red-100 rounded transition-colors"
+                        title="Eliminar tarea">🗑</button>
+              </div>
+            </div>
+
+            <div class="w-full bg-gray-100 rounded-full h-1.5 mt-3 overflow-hidden">
+              <div class="h-full rounded-full transition-all duration-500 ${t.progress >= 100 ? 'bg-green-500' : 'bg-blue-500'}"
+                   style="width: ${t.progress || 0}%">
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    });
+  });
+
+  // 📊 Calcular métricas del equipo
+  const successPct = total > 0 ? Math.round((completadas / total) * 100) : 0;
+  const avgProgress = total > 0 ? Math.round(progreso / total) : 0;
+
+  // Actualizar KPIs visuales
+  document.getElementById("teamTotal").innerText = total;
+  document.getElementById("teamDone").innerText = completadas;
+  document.getElementById("teamPct").innerText = `${successPct}%`;
+  document.getElementById("teamProgress").innerText =
+    `✅ ${completadas}/${total} completadas — Promedio general: ${avgProgress}%`;
+}
+
+// --- Función helper global: semana ISO ---
+function getIsoWeek(dateStr) {
+  const d = new Date(dateStr);
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+  return `${d.getUTCFullYear()}-W${weekNo}`;
+}
+
+function getPriorityClass(priority) {
+  if (priority === "alta") return "bg-red-100 border border-red-300";
+  if (priority === "media") return "bg-yellow-100 border border-yellow-300";
+  if (priority === "baja") return "bg-green-100 border border-green-300";
+  return "bg-gray-100 border border-gray-300";
+}
+
+// 👇 Variables y funciones para reordenar tareas (Drag & Drop)
+  let draggedTaskId = null;
+
+  function dragStartReorder(ev, id) {
+    draggedTaskId = id;
+    ev.dataTransfer.effectAllowed = "move";
+    ev.currentTarget.style.opacity = "0.5"; // Efecto visual
+  }
+
+  function dragEndReorder(ev) {
+    ev.currentTarget.style.opacity = "1"; // Restaurar visual
+  }
+
+  function dropReorder(ev, targetId) {
+    ev.preventDefault();
+    if (!draggedTaskId || draggedTaskId === targetId) return;
+
+    // 1. Buscar Tarea Origen
+    let sourceDay, sourceIndex, sourceTask;
+    for (const day of Object.keys(data.week)) {
+      const idx = data.week[day].findIndex(t => t.id === draggedTaskId);
+      if (idx !== -1) {
+        sourceDay = day;
+        sourceIndex = idx;
+        sourceTask = data.week[day][idx];
+        break;
+      }
+    }
+
+    // 2. Buscar Tarea Destino
+    let targetDay, targetTask;
+    for (const day of Object.keys(data.week)) {
+      const idx = data.week[day].findIndex(t => t.id === targetId);
+      if (idx !== -1) {
+        targetDay = day;
+        targetTask = data.week[day][idx];
+        break;
+      }
+    }
+
+    // 3. Mover la tarea
+    if (sourceTask && targetDay) {
+      // Sacamos la tarea de su lugar original
+      data.week[sourceDay].splice(sourceIndex, 1);
+
+      // Si cambiamos de día, actualizamos la propiedad interna
+      sourceTask.day = targetDay; 
+      
+      // Recalculamos el índice destino (por si se movió al borrar la origen)
+      const newTargetIndex = data.week[targetDay].findIndex(t => t.id === targetId);
+      
+      // Insertamos la tarea ENCIMA de la tarea destino
+      data.week[targetDay].splice(newTargetIndex, 0, sourceTask);
+
+      saveData();
+      renderToday(); // Refrescar todo
+    }
+    draggedTaskId = null;
+  }
+
+// --- HOY (CON LECTURA CORRECTA DE HIGHLIGHT DIARIO) ---
+function renderToday() {
+    const dayIndex = new Date().getDay(); 
+    const dayMap = [null, "Mon", "Tue", "Wed", "Thu", "Fri"];
+    const todayKey = dayMap[dayIndex] || null;
+    const todayContainer = document.getElementById("todayTasks");
+    todayContainer.innerHTML = "";
+
+    if (!todayKey) {
+        todayContainer.innerHTML = `<p class='text-gray-400 italic text-center py-4'>Fin de semana. ¡A descansar!</p>`;
+        return;
+    }
+
+    const dailyHighlightId = data.dailyHighlights ? data.dailyHighlights[todayKey] : null;
+    const buckets = { leader: [], normal: [], pending: [], meeting: [] };
+    const orderedDays = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+    const todayIdxNum = orderedDays.indexOf(todayKey);
+
+    orderedDays.forEach(day => {
+        const dIdx = orderedDays.indexOf(day);
+        if (dIdx <= todayIdxNum || (todayKey === "Mon" && day === "Fri")) {
+            (data.week[day] || []).forEach(t => {
+                if (t.delegated || (t.progress || 0) >= 100) return;
+                const enriched = { ...t, originDay: day };
+
+                // LÓGICA DE PRIORIDAD: La llama (keyTask) manda a la primera cubeta
+                if (t.keyTask) buckets.leader.push(enriched); 
+                else if (t.customStatus === 'pending_closure') buckets.pending.push(enriched);
+                else if (t.customStatus === 'meeting_scheduled') buckets.meeting.push(enriched);
+                else buckets.normal.push(enriched);
+            });
+        }
+    });
+
+    const renderCard = (t, cardBg) => {
+        const isHighlight = (t.id === dailyHighlightId);
+        const historyHover = (t.activities && t.activities.length > 0)
+            ? "📜 HISTORIAL:\n" + t.activities.map(a => `• ${a.date}: ${a.text}`).join("\n")
+            : "Sin actividad registrada";
+
+        return `
+        <div class="p-3 ${cardBg} rounded shadow-sm border mb-2 group transition-all hover:shadow-md cursor-move ${t.priority === 'alta' ? 'border-l-4 border-l-red-500' : ''}" 
+             title="${historyHover}" draggable="true" ondragstart="dragStartReorder(event, '${t.id}')">
+            <div class="flex justify-between items-start">
+                <div class="flex-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-medium text-gray-800">${t.title}</span>
+                        <span class="text-[10px] bg-white/80 text-gray-500 px-1.5 rounded border border-gray-100 italic">🎯 ${t.objective}</span>
+                        ${isHighlight ? '<span class="text-[10px] bg-yellow-300 font-bold px-1 rounded shadow-sm">⭐ Highlight</span>' : ''}
+                    </div>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                    <input type="number" value="${t.progress || 0}" onchange="updateTaskProgress('${t.originDay}', '${t.id}', this.value)" 
+                           class="w-10 text-center text-xs border rounded h-7 bg-white/70">
+                    <button onclick="toggleExtraFields('${t.id}')" title="Detalles" class="p-1 hover:bg-white/50 rounded">📝</button>
+                    <button onclick="openActivityModal('${t.originDay}', '${t.id}')" class="text-[10px] bg-blue-500 text-white px-2 py-1 rounded font-bold">ACT</button>
+                    <button onclick="toggleKeyTask('${t.originDay}', '${t.id}')" title="Prioridad del Líder" class="text-lg grayscale-0">
+                        ${t.keyTask ? '🔥' : '🌑'}
+                    </button>
+                    <button onclick="toggleDayHighlight('${todayKey}', '${t.id}')" class="${isHighlight ? 'text-yellow-500' : 'text-gray-300'} text-lg">★</button>
+                </div>
+            </div>
+        </div>`;
+    };
+
+    const renderSection = (title, tasks, textColor, cardBg, icon) => {
+        if (tasks.length === 0) return "";
+        return `<div class="mb-6">
+            <h3 class="flex items-center gap-2 mb-2 ${textColor} text-xs font-bold uppercase tracking-wider">${icon} ${title}</h3>
+            <div>${tasks.map(t => renderCard(t, cardBg)).join("")}</div>
+        </div>`;
+    };
+
+    // Banner de Highlight (Banner superior)
+    const bannerBox = document.getElementById("todayHighlight");
+    const bannerText = document.getElementById("highlightText");
+    let hTitle = "(sin definir)";
+    Object.keys(data.week).forEach(d => {
+        const t = data.week[d].find(x => x.id === dailyHighlightId);
+        if (t) hTitle = t.title;
+    });
+    bannerText.innerText = hTitle;
+    bannerBox.className = dailyHighlightId ? "mb-4 p-3 bg-yellow-100 border-l-4 border-yellow-500 font-semibold rounded shadow-sm" : "mb-4 p-3 bg-gray-100 border-l-4 border-gray-400 font-semibold rounded shadow-sm";
+
+    // Llamadas a render con colores de tarjeta
+    todayContainer.innerHTML += renderSection("Prioridades del Líder", buckets.leader, "text-blue-600", "bg-blue-50/80", "🔥");
+    todayContainer.innerHTML += renderSection("Pendientes de Cierre", buckets.pending, "text-orange-600", "bg-orange-50/80", "⏳");
+    todayContainer.innerHTML += renderSection("Reuniones Programadas", buckets.meeting, "text-indigo-600", "bg-indigo-50/80", "📅");
+    todayContainer.innerHTML += renderSection("Tareas del Día", buckets.normal, "text-gray-500", "bg-white", "🧩");
+}
+// --- BARRA DE AVANCE ---
+function updateTaskProgress(dayKey, ref, value) {
+  if (!data.week[dayKey]) return;
+
+  // 🔍 detectar si ref es índice o id
+  const task =
+    typeof ref === "number"
+      ? data.week[dayKey][ref]
+      : data.week[dayKey].find(t => t.id === ref);
+
+  if (!task) {
+    console.error("No se encontró la tarea para updateTaskProgress", dayKey, ref);
+    return;
+  }
+
+  task.progress = Math.max(0, Math.min(100, parseInt(value) || 0));
+
+  // 🧭 Si se llega al 100%
+  if (task.progress === 100 && !task.closedAt) {
+    if (!task.finalNote || task.finalNote.trim() === "") {
+      openFinalNoteModal(task, dayKey, ref);
+      return; // detener hasta guardar nota final
+    }
+
+    // ✅ Ya tiene nota → cerramos directamente
+    task.closedAt = new Date().toISOString().split("T")[0];
+    if (!data.historyTasks) data.historyTasks = [];
+    data.historyTasks.push({ ...task });
+
+    // 🔥 eliminar la tarea de la semana (por ID o índice)
+    if (typeof ref === "number") {
+      data.week[dayKey].splice(ref, 1);
+    } else {
+      data.week[dayKey] = data.week[dayKey].filter(t => t.id !== ref);
+    }
+  }
+
+  // 🔄 Refrescar vistas
+  renderToday();
+  renderWeek();
+  renderTeam();
+  renderReport();
+  renderKpis();
+  renderHistoryTasks();
+  saveData();
+}
+
+// --- LIMPIEZA DE TAREAS COMPLETADAS ---
+function cleanCompletedTasks() {
+  if (!data.historyTasks) data.historyTasks = [];
+
+  Object.keys(data.week).forEach(day => {
+    // Filtramos las tareas completadas
+    const completed = data.week[day].filter(t => t.progress === 100);
+
+    completed.forEach(t => {
+      // si no tiene fecha de cierre, le ponemos hoy
+      if (!t.closedAt) {
+        t.closedAt = new Date().toISOString().split("T")[0];
+      }
+      data.historyTasks.push({ ...t });
+    });
+
+    // mantenemos solo las no completadas en la semana
+    data.week[day] = data.week[day].filter(t => t.progress < 100);
+  });
+}
+
+function addTodayNew() {
+  const val = document.getElementById("newTodayTask").value.trim();
+  const priority = document.getElementById("newTodayPriority").value;
+  const objective = document.getElementById("newTodayObjective")
+    ? document.getElementById("newTodayObjective").value
+    : "General"; // fallback si no existe el select
+
+  if (!val) return;
+
+  // 🔧 Calcular correctamente el día actual
+  const dayIndex = new Date().getDay(); // 0=Dom, 1=Lun, ..., 6=Sab
+  const dayMap = [null, "Mon", "Tue", "Wed", "Thu", "Fri"];
+  const todayKey = dayMap[dayIndex];
+  const orderedDays = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+
+  // 🚫 Si es fin de semana
+  if (!todayKey) {
+    document.getElementById("todayTasks").innerHTML =
+      "<p class='text-gray-400 italic'>Hoy no hay tareas programadas (fin de semana)</p>";
+    return;
+  }
+
+  // 📅 Determinar mañana (si existe)
+  const todayPos = orderedDays.indexOf(todayKey);
+  const tomorrowKey = orderedDays[todayPos + 1] || null;
+
+  // 🧩 Crear nueva tarea
+  const newTask = {
+    id: crypto.randomUUID(),
+    title: val,
+    priority,
+    progress: 0,
+    extra: true,
+    objective,
+    type: "task",
+    delegated: false,
+    assignedAt: new Date().toISOString().split("T")[0],
+  };
+
+  // 🧠 Lógica de asignación
+  if (priority === "alta" || todayKey === "Fri" || !tomorrowKey) {
+    // Alta prioridad o viernes → se queda hoy
+    if (!data.week[todayKey]) data.week[todayKey] = [];
+    data.week[todayKey].push(newTask);
+  } else {
+    // Media / baja prioridad → pasa a mañana
+    if (!data.week[tomorrowKey]) data.week[tomorrowKey] = [];
+    data.week[tomorrowKey].push(newTask);
+  }
+
+  // 🔄 Limpiar campo y refrescar vistas
+  document.getElementById("newTodayTask").value = "";
+  renderToday();
+  renderWeek();
+  saveData();
+}
+
+
+    function setHighlight(taskTitle) {
+      data.highlight = taskTitle;
+      renderToday();   // vuelve a renderizar con la tarjeta marcada
+    }
+    function saveHighlight() {
+      const input = document.getElementById("newHighlightInput");
+      if (!input) return;
+
+      const newHighlight = input.value.trim();
+      if (!newHighlight) {
+        alert("Por favor ingresa una prioridad del día antes de guardar.");
+        return;
+      }
+
+      // Guardar en el objeto global
+      data.highlight = newHighlight;
+
+      // Feedback visual
+      const text = document.getElementById("highlightText");
+      if (text) text.innerText = newHighlight;
+
+      // Color y mensaje
+      const box = document.getElementById("todayHighlight");
+      box.className = "mb-4 p-4 rounded-lg bg-yellow-400 text-black shadow-md flex justify-between items-center";
+
+      // Renderizar para reflejar el cambio en la lista
+      renderToday();
+
+      // Mensaje visual rápido
+      const toast = document.createElement("div");
+      toast.textContent = "⭐ Prioridad del día actualizada";
+      toast.className = "fixed bottom-4 right-4 bg-yellow-500 text-black px-4 py-2 rounded shadow-lg z-[9999]";
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 2500);
+    }
+    function renderHighlight() {
+      const box = document.getElementById("todayHighlight");
+      const text = document.getElementById("highlightText");
+      const input = document.getElementById("newHighlightInput");
+
+      if (data.highlight && data.highlight.trim() !== "") {
+        text.innerText = data.highlight;
+        box.className = "mb-4 p-4 rounded-lg bg-yellow-400 text-black shadow-md flex justify-between items-center";
+        if (input) input.value = data.highlight;
+      } else {
+        text.innerText = "(sin definir)";
+        box.className = "mb-4 p-4 rounded-lg bg-gray-200 text-gray-700 flex justify-between items-center";
+        if (input) input.value = "";
+      }
+    }
+
+function rolloverUnfinishedTasks() {
+  const nextWeek = [];
+
+  Object.keys(days).forEach(day => {
+    if (day !== "Next" && day !== "Backlog") {
+      const remaining = [];
+      data.week[day].forEach(t => {
+        if (t.progress < 100 && !t.closedAt) {
+          // 👇 Marcar como retrasada y mandar a Next
+          t.delayed = true;
+          nextWeek.push(t);
+        } else {
+          remaining.push(t); // mantener cerradas en historial
+        }
+      });
+      data.week[day] = remaining;
+    }
+  });
+
+  if (!data.week.Next) data.week.Next = [];
+  data.week.Next = [...data.week.Next, ...nextWeek];
+
+  renderWeek();
+  renderToday();
+  renderKpis();
+}
+
+// --- SEMANA (CON HIGHLIGHT POR DÍA) ---
+  function renderWeek() {
+      const weekContainer = document.getElementById("weekTasks");
+      weekContainer.innerHTML = "";
+      const columns = { ...days, Next: "Próxima semana", Backlog: "Backlog" };
+
+      Object.entries(columns).forEach(([key, label]) => {
+          const tasksHTML = (data.week[key] || [])
+              .map((t) => {
+                  const isMeeting = t.type === "meeting";
+                  const isDelegated = t.delegated;
+                  const isCompleted = t.progress >= 100;
+                  if (isCompleted || isDelegated) return "";
+
+                  // Lógica de reprogramación: comparamos creación vs planificación
+                  const isRescheduled = t.scheduledAt && t.assignedAt && (t.scheduledAt !== t.assignedAt);
+                  const rescheduledLabel = isRescheduled 
+                      ? `<span class="text-[9px] bg-blue-100 text-blue-700 px-1 rounded border border-blue-200 font-bold">🗓️ Reprogramada</span>` 
+                      : "";
+
+                  let bgClass = getPriorityClass(t.priority);
+                  if (isMeeting) bgClass = "bg-blue-50 border border-blue-300";
+
+                  const icon = isMeeting ? "📅" : "🧩";
+                  const isDayHighlight = data.dailyHighlights && data.dailyHighlights[key] === t.id;
+
+                  return `
+                  <div class='p-2 flex flex-col mb-2 rounded ${bgClass} relative group'
+                       draggable="true"
+                       ondragstart="dragStart(event, '${key}', '${t.id}')">
+                      
+                      <div class="flex-1">
+                          <div class="font-medium flex items-center gap-2 flex-wrap pr-6"> 
+                              <span>${icon}</span>
+                              <span>${t.title}</span>
+                              ${rescheduledLabel}
+                          </div>
+                          
+                          <button onclick="toggleDayHighlight('${key}', '${t.id}')" 
+                                  class="absolute top-2 right-2 text-xl leading-none transition-transform hover:scale-110 ${isDayHighlight ? 'text-yellow-500' : 'text-gray-300 hover:text-yellow-400'}"
+                                  title="${isDayHighlight ? 'Desmarcar Highlight' : 'Marcar como Highlight del día'}">
+                                  ★
+                          </button>
+
+                          ${isMeeting && t.time ? `<div class="text-xs text-gray-500 mt-1">🕒 ${t.time}</div>` : ""}
+                          ${t.notes ? `<div class="text-xs text-gray-400 mt-1 italic">${t.notes}</div>` : ""}
+                          ${t.delayed ? `<div class="text-xs bg-red-200 text-red-800 px-1 mt-1 inline-block rounded">Retrasada</div>` : ""}
+                          ${t.finalNote ? `<div class="text-xs bg-blue-200 text-blue-800 px-1 mt-1 inline-block rounded">Con nota</div>` : ""}
+                      </div>
+
+                      <div class="mt-2 bg-gray-50 rounded-lg p-2 border border-gray-200">
+                          <div class="flex flex-col items-end w-full">
+                              <input type="range" min="0" max="100" value="${t.progress || 0}"
+                                     oninput="this.nextElementSibling.innerText = this.value + '%'"
+                                     onchange="updateTaskProgress('${key}', '${t.id}', this.value)"
+                                     class="w-full accent-blue-500 cursor-pointer h-2 rounded-lg">
+                              <span class="text-xs text-gray-600 mt-1">${t.progress || 0}%</span>
+                          </div>
+
+                          <div class="flex justify-end space-x-1 mt-2">
+                              <button onclick="openActivityModal('${key}', '${t.id}')"
+                                      class="text-xs bg-blue-500 text-white px-2 py-1 rounded">+Act</button>
+                              <button onclick="delegateTask('${key}', '${t.id}')"
+                                      class="text-xs bg-gray-300 hover:bg-gray-400 rounded px-2 py-1">Delegar</button>
+                          </div>
+                          <div class="flex items-center gap-2 mt-1 text-xs">
+                              ${t.impactExplanation 
+                                  ? `<span title="Impacto completado">🌟</span>` 
+                                  : `<button class="text-gray-500 underline" onclick="openImpactModal('${t.id}')">+Impacto</button>`}
+                              ${t.urgencyExplanation 
+                                  ? `<span title="Urgencia completada">⏰</span>` 
+                                  : `<button class="text-gray-500 underline" onclick="openUrgencyModal('${t.id}')">+Urgencia</button>`}
+                          </div>
+                      </div>
+                  </div>`;
+              }).join("");
+
+          weekContainer.innerHTML += `
+              <div class='bg-white p-2 rounded shadow min-h-[200px] border border-gray-200'
+                   ondragover="allowDrop(event)"
+                   ondrop="dropTask(event, '${key}')">
+                  <h4 class='font-semibold mb-2'>${label}</h4>
+                  ${tasksHTML || "<p class='text-sm text-gray-400 italic'>Sin tareas</p>"}
+              </div>`;
+          autoCollapseExtraFields();
+      });
+  }
+
+// --- DRAG & DROP ---
+function dragStart(ev, sourceDay, taskId) {
+  ev.dataTransfer.setData("sourceDay", sourceDay);
+  ev.dataTransfer.setData("taskId", taskId);
+}
+
+function allowDrop(ev) {
+  ev.preventDefault();
+  ev.currentTarget.classList.add("drag-over");
+}
+
+  function dropTask(ev, targetDay) {
+    ev.preventDefault();
+    const sourceDay = ev.dataTransfer.getData("sourceDay");
+    const taskId = ev.dataTransfer.getData("taskId");
+
+    if (!sourceDay || !taskId) return;
+
+    const sourceTasks = data.week[sourceDay];
+    const taskIndex = sourceTasks.findIndex(t => t.id === taskId);
+    if (taskIndex === -1) return;
+
+    const [task] = sourceTasks.splice(taskIndex, 1);
+    task.day = targetDay;
+
+    // Si se cambia de columna, actualizamos scheduledAt para marcar reprogramación
+    if (sourceDay !== targetDay) {
+      task.scheduledAt = new Date().toISOString().split("T")[0];
+    }
+
+    if (!data.week[targetDay]) data.week[targetDay] = [];
+    data.week[targetDay].push(task);
+
+    saveData();
+    renderAll();
+  }
+
+document.addEventListener("dragleave", e => {
+  if (e.target.classList) e.target.classList.remove("drag-over");
+});
+
+// --- STAFF Y 1:1 ---
+function renderStaffTopics() {
+  document.getElementById("staffTopicsList").innerHTML = data.staffTopics.map((t,i) =>
+    `<li>${t} <button onclick="deleteStaffTopic('${t.id}')" class="text-red-500">✖</button></li>`).join("");
+}
+function addStaffTopic() {
+  const val = document.getElementById("newStaffTopic").value.trim();
+  if (val) { data.staffTopics.push(val); document.getElementById("newStaffTopic").value=""; renderStaffTopics(); }
+}
+function deleteStaffTopic(i) { data.staffTopics.splice(i,1); renderStaffTopics(); }
+
+function renderOneToOneTopics() {
+  document.getElementById("oneToOneList").innerHTML = data.oneToOneTopics.map((t,i) =>
+    `<li>${t} <button onclick="deleteOneToOne('${t.id}')" class="text-red-500">✖</button></li>`).join("");
+}
+function addOneToOneTopic() {
+  const val = document.getElementById("newOneToOne").value.trim();
+  if (val) { data.oneToOneTopics.push(val); document.getElementById("newOneToOne").value=""; renderOneToOneTopics(); }
+}
+function deleteOneToOne(i) { data.oneToOneTopics.splice(i,1); renderOneToOneTopics(); }
+
+// --- APRENDIZAJES ---
+function renderAprendizajes() {
+  document.getElementById("aprendizajesList").innerHTML = data.aprendizajes.map((a, i) =>
+    `<div class='p-1 bg-green-100 rounded flex justify-between'>
+      ✅ ${a}
+      <button onclick="deleteAprendizaje(${i})" class="text-red-500">✖</button>
+    </div>`
+  ).join("");
+}
+function addAprendizaje() {
+  const val = document.getElementById("newAprendizaje").value.trim();
+  if (val) { data.aprendizajes.push(val); document.getElementById("newAprendizaje").value=""; renderAprendizajes(); }
+  saveData();
+}
+function deleteAprendizaje(i) { data.aprendizajes.splice(i,1); renderAprendizajes(); saveData();}
+
+// --- EXPERIMENTOS ---
+function renderExperimentos() {
+  document.getElementById("experimentosList").innerHTML = data.experimentos.map((e, i) =>
+    `<div class='p-1 bg-yellow-100 rounded flex justify-between'>
+      🧪 ${e}
+      <button onclick="deleteExperimento(${i})" class="text-red-500">✖</button>
+    </div>`
+  ).join("");
+}
+function addExperimento() {
+  const val = document.getElementById("newExperimento").value.trim();
+  if (val) { data.experimentos.push(val); document.getElementById("newExperimento").value=""; renderExperimentos(); }
+}
+function deleteExperimento(i) { data.experimentos.splice(i,1); renderExperimentos(); }
+
+// --- RETRO ---
+function saveDailyRetro() {
+  const retro = document.getElementById("dailyRetro").value;
+  if (retro.trim()) {
+    data.history.push({ date: new Date().toISOString().split('T')[0], retro });
+    document.getElementById("dailyRetro").value = "";
+    renderHistory();
+    renderReport(); // 👈 también actualiza el reporte consolidado
+  }
+}
+  function renderHistory() {
+    const grouped = {};
+    const todayStr = new Date().toISOString().split("T")[0]; // fecha actual YYYY-MM-DD
+
+    // Agregar entradas del historial
+    data.history.forEach(h => {
+      if (!grouped[h.date]) grouped[h.date] = [];
+
+      if (h.type === "weekSnapshot") {
+        // 📊 Resumen de la semana cerrada
+        grouped[h.date].push(
+          `📊 Semana ${h.week}: <strong>${h.completadas}/${h.total}</strong> completadas, <strong>${h.retrasadas}</strong> retrasadas`
+        );
+      } else if (h.retro) {
+        // 📝 Retro normal
+        grouped[h.date].push(`📝 Retro: ${h.retro}`);
+      }
+    });
+
+    // Agregar tareas cerradas con nota
+    Object.keys(data.week).forEach(day => {
+      data.week[day].forEach(t => {
+        if (t.closedAt && t.finalNote) {
+          if (!grouped[t.closedAt]) grouped[t.closedAt] = [];
+          grouped[t.closedAt].push(`✅ <strong>${t.title}</strong>: ${t.finalNote}`);
+        }
+
+        // 👇 Marcar tareas pendientes (no cerradas y con fecha asignada)
+        if (!t.closedAt && t.progress < 100 && t.assignedAt) {
+          const assignedWeek = t.assignedAt.split("T")[0];
+          if (!grouped[assignedWeek]) grouped[assignedWeek] = [];
+          grouped[assignedWeek].push(`⏳ <strong>${t.title}</strong> (pendiente desde esa semana)`);
+        }
+      });
+    });
+
+    // Ordenar fechas descendente
+    const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+
+    // Render
+    let html = "";
+    sortedDates.forEach(date => {
+      const label = (date === todayStr) ? "Hoy" : date;
+      html += `<li class="mb-2">
+        <div class="font-semibold text-blue-600">📅 ${label}</div>
+        <ul class="ml-4 list-disc text-sm text-gray-700 space-y-1">
+          ${grouped[date].map(entry => `<li>${entry}</li>`).join("")}
+        </ul>
+      </li>`;
+    });
+
+    document.getElementById("weeklyHistory").innerHTML = html;
+  }
+
+// --- TABS ---
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("bg-blue-500", "text-white"));
+    btn.classList.add("bg-blue-500", "text-white");
+    document.querySelectorAll(".tab-content").forEach(c => c.classList.add("hidden"));
+    document.getElementById(`tab-${btn.dataset.tab}`).classList.remove("hidden");
+  });
+});
+
+// --- EXPORT ---
+document.getElementById("exportBtn").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "Tablero Ágil — Semana.json";
+  a.click();
+});
+
+// --- IMPORT ---
+document.getElementById("importBtn").addEventListener("click", () => {
+  document.getElementById("importFile").click();
+});
+
+document.getElementById("importFile").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+
+  reader.onload = (ev) => {
+    const raw = ev.target.result;
+    console.log("📂 Contenido crudo:", raw);
+
+    try {
+      const text = raw.trim().replace(/^\uFEFF/, "");
+      console.log("🧾 Texto limpio:", text);
+
+      const imported = JSON.parse(text);
+      console.log("✅ JSON.parse OK:", imported);
+
+      try {
+        data = imported;
+        normalizeData();
+        renderAll();
+        console.log("🎉 Carga completa sin errores");
+      } catch (innerErr) {
+        console.error("⚠️ Error después de parsear JSON:", innerErr);
+        alert("⚠️ El JSON se leyó bien, pero falló al renderizar: " + innerErr.message);
+      }
+
+    } catch (err) {
+      console.error("❌ Error al parsear JSON:", err);
+      alert("❌ El archivo JSON tiene formato inválido");
+    }
+  };
+
+  reader.readAsText(file);
+});
+
+  // Normalización: asegurar que siempre existan contenedores clave
+    // --- RENDER GENERAL ---
+      function renderAll() {
+          renderToday();
+          renderWeek();
+          renderTeam();
+          renderTopics(); // <--- Esta línea hace que aparezcan los temas guardados
+          renderHistory();
+          renderReport();
+          renderKpis();
+          renderHistoryTasks();
+          renderObjectives();
+          renderKpisPanel();
+          renderControls();
+          renderObjectivesHistory();
+          renderControlsHistory();
+      }
+  let currentTaskRef = null; // 👈 guarda referencia a la tarea que se está cerrando
+
+  function openFinalNoteModal(task, day, index) {
+
+    currentTaskRef = { task, day, index };
+    document.getElementById("finalNoteTaskTitle").innerText = `Tarea: ${task.title}`;
+    document.getElementById("finalNoteInput").value = task.finalNote || "";
+    document.getElementById("finalNoteModal").classList.remove("hidden");
+    document.getElementById("finalNoteModal").classList.add("flex");
+  }
+
+  function closeFinalNoteModal() {
+    document.getElementById("finalNoteModal").classList.add("hidden");
+    document.getElementById("finalNoteModal").classList.remove("flex");
+    currentTaskRef = null;
+  }
+
+  function saveFinalNote() {
+    if (!currentTaskRef) return;
+
+    const { task, day, index } = currentTaskRef;
+    const note = document.getElementById("finalNoteInput").value.trim();
+
+    task.finalNote = note;
+    task.closedAt = new Date().toISOString().split("T")[0]; // Fecha de cierre
+
+    // ✅ mover la tarea al historial
+    if (!data.historyTasks) data.historyTasks = [];
+    data.historyTasks.push({ ...task });
+
+    // ✅ eliminar la tarea de la semana
+    if (Array.isArray(data.week[day])) {
+      data.week[day].splice(index, 1);
+    }
+
+    closeFinalNoteModal();
+    renderToday();
+    renderWeek();
+    renderKpis(); // 👈 para refrescar métricas
+    renderReport();     // 👈 agregar esto
+    renderTeam();       // 👈 también acá
+    saveData();
+  }
+
+  // --- HISTORIAL DE TAREAS ---
+  function renderHistoryTasks() {
+    const container = document.getElementById("historyTasksList");
+    if (!container) return;
+
+    // Agrupar por fecha de cierre
+    const grouped = {};
+    data.historyTasks.forEach(t => {
+      if (!t.closedAt) return;
+      if (!grouped[t.closedAt]) grouped[t.closedAt] = [];
+      grouped[t.closedAt].push(t);
+    });
+
+    // Ordenar fechas descendente
+    const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+
+    let html = "";
+    sortedDates.forEach(date => {
+      html += `
+        <li class="mb-3">
+          <div class="font-semibold text-blue-600">📅 ${date}</div>
+          <ul class="ml-4 list-disc text-sm text-gray-700 space-y-1">
+            ${grouped[date].map(t => `
+              <li>
+                <span class="font-medium">${t.title}</span>
+                ${t.objective ? `<span class="ml-2 text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded">${t.objective}</span>` : ""}
+                <span class="text-xs text-gray-500">(${t.objective || "General"}, prioridad: ${t.priority})</span>
+                ${t.finalNote ? `<div class="text-xs text-gray-600 italic">📝 ${t.finalNote}</div>` : ""}
+              </li>`).join("")}
+          </ul>
+        </li>`;
+    });
+
+    container.innerHTML = html || "<p class='text-sm text-gray-400 italic'>No hay tareas en el historial</p>";
+  }
+
+function renderReport() {
+  const grouped = {};
+  const todayStr = new Date().toISOString().split("T")[0];
+
+  // 1️⃣ Retros manuales
+  data.history.forEach(h => {
+    if (!grouped[h.date]) grouped[h.date] = [];
+    grouped[h.date].push(`📝 Retro: ${h.retro}`);
+  });
+
+  // 2️⃣ Notas finales de tareas cerradas
+  Object.keys(data.week).forEach(day => {
+    data.week[day].forEach(t => {
+      if (t.closedAt && t.finalNote) {
+        if (!grouped[t.closedAt]) grouped[t.closedAt] = [];
+        grouped[t.closedAt].push(`✅ <strong>${t.title}</strong>: ${t.finalNote}`);
+      }
+    });
+  });
+
+  // 3️⃣ Historial de tareas cerradas (data.historyTasks)
+  if (data.historyTasks) {
+    data.historyTasks.forEach(t => {
+      if (t.closedAt && t.finalNote) {
+        if (!grouped[t.closedAt]) grouped[t.closedAt] = [];
+        grouped[t.closedAt].push(`✅ <strong>${t.title}</strong>: ${t.finalNote}`);
+      }
+    });
+  }
+
+  // 4️⃣ Actividades dentro de tareas
+  Object.keys(data.week).forEach(day => {
+    data.week[day].forEach(t => {
+      if (t.activities && t.activities.length > 0) {
+        t.activities.forEach(act => {
+          if (!grouped[act.date]) grouped[act.date] = [];
+          grouped[act.date].push(`📒 <strong>${t.title}</strong>: ${act.text}`);
+        });
+      }
+    });
+  });
+  if (data.historyTasks) {
+    data.historyTasks.forEach(t => {
+      if (t.activities && t.activities.length > 0) {
+        t.activities.forEach(act => {
+          if (!grouped[act.date]) grouped[act.date] = [];
+          grouped[act.date].push(`📒 <strong>${t.title}</strong>: ${act.text}`);
+        });
+      }
+    });
+  }
+
+  // 5️⃣ Ordenar fechas descendente
+  const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+
+  // 6️⃣ Render
+  let html = "";
+  sortedDates.forEach(date => {
+    const label = (date === todayStr) ? "Hoy" : date;
+    html += `
+      <li class="bg-white p-4 rounded shadow">
+        <div class="font-semibold text-blue-600 mb-2">📅 ${label}</div>
+        <ul class="ml-4 list-disc text-sm text-gray-700 space-y-1">
+          ${grouped[date].map(entry => `<li>${entry}</li>`).join("")}
+        </ul>
+      </li>`;
+  });
+
+  document.getElementById("reportLog").innerHTML = html;
+}
+
+let currentActivityRef = null;
+let forceFinalComment = false;
+
+// 🪄 Abrir modal
+  function openActivityModal(dayKey, taskRef, force = false) {
+    const modal = document.getElementById("activityModal");
+    modal.classList.replace("hidden", "flex");
+    
+    // Limpiamos el input correcto
+    document.getElementById("activityModalInput").value = "";
+
+    let task = typeof taskRef === "number" ? data.week[dayKey][taskRef] : data.week[dayKey].find(t => t.id === taskRef);
+    if (!task) return;
+
+    currentActivityRef = { dayKey, task };
+    forceFinalComment = force;
+    
+    document.querySelector(".activity-title").innerText = `📝 Actividad: ${task.title}`;
+    // Ponemos el foco automático para escribir rápido
+    setTimeout(() => document.getElementById("activityModalInput").focus(), 100);
+  }
+
+// 🧹 Cerrar modal
+function closeActivityModal() {
+  const modal = document.getElementById("activityModal");
+  modal.classList.add("hidden");
+  currentActivityRef = null;
+  forceFinalComment = false;
+  modal.classList.remove("flex");
+}
+
+// 💾 Guardar comentario
+  function saveActivity() {
+    const input = document.getElementById("activityModalInput");
+    const text = input.value.trim();
+
+    if (!text) {
+      alert("Por favor agrega un comentario.");
+      return;
+    }
+
+    const { task } = currentActivityRef;
+    if (!task.activities) task.activities = [];
+
+    task.activities.push({
+      text,
+      date: new Date().toISOString().split("T")[0],
+    });
+
+    closeActivityModal();
+    renderAll(); // Refresca tablero y reporte
+    saveData();
+  }
+
+  function loadData() {
+    const saved = localStorage.getItem("tableroAgilData");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        data = parsed;
+        normalizeData();
+        console.log("📦 Datos cargados desde localStorage");
+        return true;
+      } catch (e) {
+        console.error("Error al cargar datos guardados:", e);
+      }
+    }
+    return false;
+  }
+
+  window.onload = () => {
+      const saved = localStorage.getItem("tableroAgilData");
+      if (saved) {
+          try {
+              data = JSON.parse(saved);
+              console.log("📦 Datos cargados exitosamente");
+          } catch (e) {
+              console.error("Error al parsear datos guardados:", e);
+          }
+      }
+      normalizeData(); // Convierte strings a objetos si es necesario
+      renderAll();     // Dibuja todo en pantalla
+  };
+
+// --- KPIs y Gráficos ---
+function renderKpis() {
+  // --- helper: semana actual ---
+  const currentWeek = getIsoWeek(new Date().toISOString());
+
+  // =====================
+  // 📌 KPIs Personales (solo semana actual)
+  // =====================
+  let total = 0, completadas = 0, atrasadas = 0;
+
+  // 1) tareas activas en la semana
+  Object.keys(data.week).forEach(day => {
+    (data.week[day] || []).forEach(t => {
+      if (t.delegated) return;
+      total++;
+      if (t.progress === 100) completadas++;
+      if (t.delayed) atrasadas++;
+    });
+  });
+
+  // 2) tareas completadas movidas a historyTasks (esta semana)
+  (data.historyTasks || []).forEach(t => {
+    if (t.delegated) return;
+    if (!t.closedAt) return;
+    if (getIsoWeek(t.closedAt) !== currentWeek) return; // solo semana actual
+    total++;
+    completadas++;
+  });
+
+  // actualizar KPIs personales
+  document.getElementById("kpiTotal").innerText = total;
+  document.getElementById("kpiCompletadas").innerText = completadas;
+  document.getElementById("kpiAtrasadas").innerText = atrasadas;
+  document.getElementById("kpiPct").innerText =
+    total > 0 ? `${Math.round((completadas / total) * 100)}%` : "0%";
+
+  // =====================
+  // 📌 KPIs Equipo (solo semana actual)
+  // =====================
+  let eqTotal = 0, eqCompletadas = 0, eqAtrasadas = 0;
+
+  Object.keys(data.week).forEach(day => {
+    (data.week[day] || []).forEach(t => {
+      if (!t.delegated) return;
+      eqTotal++;
+      if (t.progress === 100) eqCompletadas++;
+      if (t.delayed) eqAtrasadas++;
+    });
+  });
+
+  (data.historyTasks || []).forEach(t => {
+    if (!t.delegated) return;
+    if (!t.closedAt) return;
+    if (getIsoWeek(t.closedAt) !== currentWeek) return;
+    eqTotal++;
+    eqCompletadas++;
+  });
+
+  // actualizar KPIs equipo
+  document.getElementById("teamTotal").innerText = eqTotal;
+  document.getElementById("teamDone").innerText = eqCompletadas;
+  document.getElementById("teamPct").innerText =
+    eqTotal > 0 ? `${Math.round((eqCompletadas / eqTotal) * 100)}%` : "0%";
+
+  // =====================
+  // 📊 Gráficos Personales
+  // =====================
+  function makeChart(id, config) {
+    if (charts[id]) charts[id].destroy();
+    const ctx = document.getElementById(id).getContext("2d");
+    charts[id] = new Chart(ctx, config);
+  }
+
+  // 📈 Velocidad semanal
+  makeChart("velocityChart", {
+    type: "bar",
+    data: {
+      labels: ["Semana actual"],
+      datasets: [
+        { label: "Completadas", data: [completadas], backgroundColor: "#4ade80" },
+        { label: "Atrasadas", data: [atrasadas], backgroundColor: "#f87171" }
+      ]
+    },
+    options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+  });
+
+  // 🎯 Avance por prioridad (PROMEDIO de progreso)
+  const priorityProgress = { alta: { done: 0, total: 0 }, media: { done: 0, total: 0 }, baja: { done: 0, total: 0 } };
+
+  // tareas activas de la semana
+  Object.values(data.week).flat().forEach(t => {
+    if (t.delegated || !t.priority) return;
+    if (!priorityProgress[t.priority]) return;
+    priorityProgress[t.priority].done += (t.progress || 0);
+    priorityProgress[t.priority].total++;
+  });
+
+  // tareas cerradas (100%) en la semana actual
+  (data.historyTasks || []).forEach(t => {
+    if (t.delegated || !t.priority) return;
+    if (getIsoWeek(t.closedAt) !== currentWeek) return;
+    if (!priorityProgress[t.priority]) return;
+    priorityProgress[t.priority].done += 100;
+    priorityProgress[t.priority].total++;
+  });
+
+  // calcular promedios por prioridad
+  const priorityAvgs = Object.keys(priorityProgress).map(p => {
+    const { done, total } = priorityProgress[p];
+    return total > 0 ? (done / total).toFixed(1) : 0;
+  });
+
+  makeChart("priorityChart", {
+    type: "bar",
+    data: {
+      labels: ["Alta", "Media", "Baja"],
+      datasets: [{
+        label: "% completado",
+        data: priorityAvgs,
+        backgroundColor: ["#ef4444", "#facc15", "#4ade80"]
+      }]
+    },
+    options: { responsive: true, scales: { y: { min: 0, max: 100 } } }
+  });
+
+  // 🏆 Avance por objetivo
+  const objectives = {};
+  Object.values(data.week).flat().forEach(t => {
+    if (t.delegated) return;
+    if (!objectives[t.objective]) objectives[t.objective] = { done: 0, total: 0 };
+    objectives[t.objective].total++;
+    if (t.progress === 100) objectives[t.objective].done++;
+  });
+  (data.historyTasks || []).forEach(t => {
+    if (t.delegated) return;
+    if (getIsoWeek(t.closedAt) !== currentWeek) return;
+    if (!objectives[t.objective]) objectives[t.objective] = { done: 0, total: 0 };
+    objectives[t.objective].total++;
+    objectives[t.objective].done++;
+  });
+  makeChart("objectiveChart", {
+    type: "bar",
+    data: {
+      labels: Object.keys(objectives).length > 0 ? Object.keys(objectives) : ["(Sin objetivos)"],
+      datasets: [{
+        label: "% completado",
+        data: Object.keys(objectives).length > 0
+          ? Object.values(objectives).map(o => o.total > 0 ? (o.done / o.total * 100).toFixed(1) : 0)
+          : [0],
+        backgroundColor: "#3b82f6"
+      }]
+    },
+    options: { responsive: true, scales: { y: { min: 0, max: 100 } } }
+  });
+
+  // ⏳ Tareas atrasadas
+  makeChart("lateChart", {
+    type: "doughnut",
+    data: {
+      labels: ["Atrasadas", "En plazo"],
+      datasets: [{
+        data: (total === 0) ? [0, 1] : [atrasadas, total - atrasadas],
+        backgroundColor: ["#f87171", "#60a5fa"]
+      }]
+    },
+    options: { responsive: true }
+  });
+
+  // 📊 Evolución histórica
+  const weeklyTotals = {};
+  const weeklyClosed = {};
+  (data.history || []).forEach(h => {
+    if (h.type === "weekSnapshot") {
+      weeklyTotals[h.week] = h.total;
+      weeklyClosed[h.week] = h.completadas;
+    }
+  });
+  const weekLabels = Object.keys(weeklyTotals).sort();
+  makeChart("trendChart", {
+    type: "line",
+    data: {
+      labels: weekLabels.length > 0 ? weekLabels : ["(sin datos)"],
+      datasets: [{
+        label: "% completado",
+        data: weekLabels.length > 0
+          ? weekLabels.map(w => weeklyTotals[w] > 0
+              ? (weeklyClosed[w] / weeklyTotals[w] * 100).toFixed(1)
+              : 0)
+          : [0],
+        borderColor: "#9333ea",
+        backgroundColor: "#9333ea",
+        tension: 0.1,
+        fill: false,
+        pointRadius: 6,
+        pointHoverRadius: 8
+      }]
+    },
+    options: { responsive: true, scales: { y: { min: 0, max: 100 } } }
+  });
+}
+  function normalizeData() {
+      // ... (mantené tu lógica de week y historyTasks arriba)
+
+      if (!data.annualObjectives) data.annualObjectives = [];
+      if (!data.recurringControls) data.recurringControls = [];
+
+      // --- Normalizar Objetivos Anuales ---
+      data.annualObjectives.forEach(o => {
+          if (!o.category) o.category = "General"; 
+          if (!o.history) o.history = [];
+      });
+
+      // --- Normalizar Controles (Recupera el Propósito) ---
+      data.recurringControls.forEach(c => {
+          if (!c.purpose) c.purpose = "Propósito no definido";
+          if (!c.category) c.category = "General"; // Campo para vincular con Objetivos
+          if (!c.history) c.history = [];
+      });
+
+      // ... (mantené la lógica de staffTopics/oneToOneTopics abajo)
+  }
+
+// --- OBJETIVOS ---
+  let currentObjectiveIndex = null;
+
+  function renderObjectives() {
+      const list = document.getElementById("annualObjectivesList");
+      if (!list) return;
+
+      list.innerHTML = (data.annualObjectives || []).map((o, i) => {
+          const linkedTasks = [];
+          Object.keys(data.week).forEach(day => {
+              (data.week[day] || []).forEach(task => {
+                  // Vínculo por categoría (ej: "Makro")
+                  if (task.objective === o.category && task.progress < 100) {
+                      linkedTasks.push({ title: task.title, progress: task.progress });
+                  }
+              });
+          });
+
+          return `
+          <li class="bg-white p-4 rounded shadow-sm border border-gray-200 mb-4">
+              <div class="flex justify-between items-start mb-2">
+                  <div>
+                      <div class="font-bold text-gray-800">${o.name}</div>
+                      <div class="text-[10px] text-blue-500 font-bold uppercase tracking-widest">🏷️ Cat: ${o.category}</div>
+                  </div>
+                  <button onclick="updateObjectiveProgress(${i})" class="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-100 font-bold">ACTUALIZAR %</button>
+              </div>
+              <div class="text-xs text-gray-500 mb-2">${o.description}</div>
+              <div class="w-full bg-gray-100 rounded-full h-1.5 mb-1">
+                  <div class="bg-blue-500 h-1.5 rounded-full transition-all duration-500" style="width: ${o.progress}%"></div>
+              </div>
+              <div class="text-right text-[9px] text-gray-400">${o.progress}% acumulado</div>
+
+              ${linkedTasks.length > 0 ? `
+              <div class="mt-4 space-y-1">
+                  <div class="text-[9px] font-bold text-gray-400 uppercase border-t pt-2 mb-1">Tareas en curso (${o.category}):</div>
+                  ${linkedTasks.map(lt => `<div class="text-[11px] flex justify-between bg-blue-50/40 p-1.5 rounded border border-blue-50"><span>🔹 ${lt.title}</span><span class="font-bold text-blue-500">${lt.progress}%</span></div>`).join("")}
+              </div>` : ''}
+          </li>`;
+      }).join("");
+  }
+  function openObjectiveModal(index) {
+    currentObjectiveIndex = index;
+    const obj = data.annualObjectives[index];
+    document.getElementById("objectiveModalTitle").innerText = obj.name;
+    document.getElementById("objectiveProgressInput").value = obj.progress || 0;
+    document.getElementById("objectiveNoteInput").value = "";
+    document.getElementById("objectiveModal").classList.remove("hidden");
+    document.getElementById("objectiveModal").classList.add("flex");
+  }
+
+  function closeObjectiveModal() {
+    document.getElementById("objectiveModal").classList.add("hidden");
+    document.getElementById("objectiveModal").classList.remove("flex");
+    currentObjectiveIndex = null;
+  }
+
+  function saveObjectiveProgress() {
+    if (currentObjectiveIndex === null) return;
+    const obj = data.annualObjectives[currentObjectiveIndex];
+    const progress = parseInt(document.getElementById("objectiveProgressInput").value) || 0;
+    const note = document.getElementById("objectiveNoteInput").value.trim();
+
+    obj.progress = progress;
+    if (!obj.history) obj.history = [];
+    obj.history.push({
+      date: new Date().toISOString().split("T")[0],
+      progress,
+      note
+    });
+
+    closeObjectiveModal();
+    renderObjectives();
+    renderObjectivesHistory(); // 👈 refrescar historial
+    saveData();
+  }
+
+// --- KPIs (queda igual que tenías)
+function renderKpisPanel() {
+  const list = document.getElementById("kpisList");
+  if (!list) return;
+
+  list.innerHTML = data.kpis.map((k, i) => `
+    <li class="bg-white p-3 rounded shadow">
+      <div class="font-semibold">${k.name}</div>
+      <div class="text-sm text-gray-500">Meta: ${k.target}</div>
+      <div class="w-full bg-gray-200 rounded h-2 mt-2">
+        <div class="h-2 rounded bg-green-500" style="width: ${(k.current / k.target) * 100}%"></div>
+      </div>
+      <div class="text-xs text-gray-600 mt-1">Actual: ${k.current} (${Math.round((k.current / k.target) * 100)}%)</div>
+    </li>
+  `).join("");
+}
+
+// --- CONTROLES ---
+let currentControlIndex = null;
+
+  function renderControls() {
+      const list = document.getElementById("controlsList");
+      if (!list) return;
+
+      list.innerHTML = (data.recurringControls || []).map((c, i) => {
+          const lastExec = c.history && c.history.length > 0 ? c.history[c.history.length - 1] : null;
+          
+          // Si el último resultado fue GAP, preparamos un cuadro de alerta con la nota
+          const gapAlert = (lastExec && lastExec.result === "GAP") 
+              ? `<div class="mt-3 p-2 bg-red-50 border border-red-200 rounded">
+                  <div class="text-[10px] font-bold text-red-600 uppercase italic">⚠️ Hallazgo del GAP (${lastExec.date}):</div>
+                  <div class="text-[11px] text-red-800 font-medium">${lastExec.note}</div>
+                 </div>` 
+              : "";
+
+          return `
+          <li class="bg-white p-4 rounded shadow-sm border border-gray-200 mb-3">
+              <div class="flex justify-between items-start">
+                  <div class="flex-1 pr-4 text-left">
+                      <div class="font-bold text-gray-800 text-sm">${c.name}</div>
+                      <div class="text-[11px] text-blue-600 font-medium mt-1 italic">🎯 Propósito: ${c.purpose}</div>
+                      <div class="flex items-center gap-3 mt-2">
+                          <span class="text-[10px] bg-gray-100 px-2 py-0.5 rounded text-gray-500 uppercase font-bold tracking-wider">📅 ${c.frequency}</span>
+                          <span class="text-[10px] ${lastExec?.result === 'GAP' ? 'text-red-600 font-bold' : 'text-gray-400'} uppercase">
+                              ÚLTIMO: ${lastExec?.result || 'PENDIENTE'}
+                          </span>
+                      </div>
+                  </div>
+                  <div class="flex flex-col space-y-1.5 shrink-0">
+                      <button onclick="executeControl(${i}, 'OK')" class="text-[10px] font-bold bg-green-50 text-green-700 border border-green-200 px-2 py-1 rounded hover:bg-green-100">✅ MARCAR OK</button>
+                      <button onclick="executeControl(${i}, 'GAP')" class="text-[10px] font-bold bg-red-50 text-red-700 border border-red-200 px-2 py-1 rounded hover:bg-red-100">⚠️ MARCAR GAP</button>
+                  </div>
+              </div>
+              ${gapAlert}
+          </li>`;
+      }).join("");
+  }
+
+function openControlModal(index) {
+  currentControlIndex = index;
+  const c = data.recurringControls[index];
+  document.getElementById("controlModalTitle").innerText = c.name;
+  document.getElementById("controlResultInput").value = "OK";
+  document.getElementById("controlNoteInput").value = "";
+  document.getElementById("controlModal").classList.remove("hidden");
+  document.getElementById("controlModal").classList.add("flex");
+}
+
+function closeControlModal() {
+  document.getElementById("controlModal").classList.add("hidden");
+  document.getElementById("controlModal").classList.remove("flex");
+  currentControlIndex = null;
+}
+
+function saveControlExecution() {
+  if (currentControlIndex === null) return;
+  const c = data.recurringControls[currentControlIndex];
+  const result = document.getElementById("controlResultInput").value;
+  const note = document.getElementById("controlNoteInput").value.trim();
+  const today = new Date().toISOString().split("T")[0];
+
+  c.lastCheck = today;
+  if (!c.history) c.history = [];
+  c.history.push({
+    date: today,
+    result,
+    note
+  });
+
+  closeControlModal();
+  renderControls();
+  renderControlsHistory();   // 👈 refrescar historial
+  saveData();
+}
+// --- HISTORIAL DE CONTROLES ---
+function renderControlsHistory() {
+  const container = document.getElementById("controlsHistory");
+  if (!container) return;
+
+  let html = "";
+  data.recurringControls.forEach(c => {
+    if (c.history && c.history.length > 0) {
+      html += `
+        <li class="bg-white p-3 rounded shadow">
+          <div class="font-semibold text-green-600">${c.name}</div>
+          <ul class="ml-4 list-disc">
+            ${c.history.map(h => `
+              <li>
+                <span class="font-medium">${h.date}:</span> ${h.result} 
+                ${h.note ? `<span class="italic text-gray-500">(${h.note})</span>` : ""}
+              </li>
+            `).join("")}
+          </ul>
+        </li>`;
+    }
+  });
+
+  container.innerHTML = html || "<p class='text-gray-400 italic'>No hay registros todavía</p>";
+}
+  function delegateTask(dayKey, taskRef) {
+    const tasks = data.week[dayKey];
+    if (!tasks) return;
+
+    // ✅ Detectar si es índice numérico o ID string
+    const task = typeof taskRef === "number"
+      ? tasks[taskRef]
+      : tasks.find(t => t.id === taskRef);
+
+    if (!task) {
+      alert("No se pudo identificar la tarea a delegar.");
+      return;
+    }
+
+    task.delegated = true;
+    task.delegatedAt = new Date().toISOString().split("T")[0];
+
+    showToast(`👥 "${task.title}" delegada correctamente`, "purple");
+
+    renderWeek();
+    renderToday();
+    renderTeam();
+    renderKpis();
+    saveData();
+  }
+  // 👇 Función para borrar tareas del equipo
+function deleteTeamTask(dayKey, taskId) {
+  if (!confirm("¿Seguro que querés eliminar esta tarea del equipo?")) return;
+  
+  // Filtramos la tarea para sacarla de la lista
+  if (data.week[dayKey]) {
+    data.week[dayKey] = data.week[dayKey].filter(t => t.id !== taskId);
+  }
+
+  saveData();
+  renderTeam(); // Refrescamos la vista de equipo
+  renderKpis(); // Actualizamos los contadores
+}
+  function toggleKeyTask(day, indexOrId) {
+    let foundDay = day;
+    let index = -1;
+    let task = null;
+
+    // 🧭 Detectar si el segundo argumento es un número (índice) o un string (ID)
+    if (typeof indexOrId === "number") {
+      // llamada tradicional (desde tablero semanal)
+      if (data.week[day] && data.week[day][indexOrId]) {
+        task = data.week[day][indexOrId];
+        index = indexOrId;
+      }
+    } else {
+      // llamada con ID (desde panel "Hoy")
+      if (data.week[day]) {
+        index = data.week[day].findIndex(t => t.id === indexOrId);
+      }
+
+      // Si no está en el día actual, buscar en toda la semana
+      if (index === -1) {
+        for (const d of Object.keys(data.week)) {
+          const i = data.week[d].findIndex(t => t.id === indexOrId);
+          if (i !== -1) {
+            foundDay = d;
+            index = i;
+            break;
+          }
+        }
+      }
+
+      if (index !== -1) {
+        task = data.week[foundDay][index];
+      }
+    }
+
+    // ⚠️ Validación
+    if (!task) {
+      alert("No se pudo identificar la tarea o reunión.");
+      return;
+    }
+
+    // 🔄 Alternar KeyTask
+    task.keyTask = !task.keyTask;
+
+    console.log(
+      `🔁 Tarea "${task.title}" (${foundDay}) marcada como ${
+        task.keyTask ? "KeyTask ✅" : "Normal ⬇️"
+      }`
+    );
+
+    // 🔄 Actualizar vistas
+    renderAll();
+    renderToday();
+  }
+
+  function toggleKeyTaskById(taskId) {
+    let foundDay = null;
+    let task = null;
+
+    // 🔍 Buscar la tarea en toda la semana
+    for (const day of Object.keys(data.week)) {
+      const t = data.week[day].find(x => x.id === taskId);
+      if (t) {
+        task = t;
+        foundDay = day;
+        break;
+      }
+    }
+
+    if (!task) {
+      alert("No se encontró la tarea para subir/bajar.");
+      return;
+    }
+
+    // 📅 Determinar el día actual
+    const dayIndex = new Date().getDay(); // 0=Dom, 1=Lun...
+    const dayMap = [null, "Mon", "Tue", "Wed", "Thu", "Fri"];
+    const todayKey = dayMap[dayIndex] || "Mon";
+
+    // 🕒 Si la tarea viene de un día anterior, moverla correctamente
+    if (foundDay !== todayKey && data.week[foundDay]) {
+      console.log(`↪️ Moviendo "${task.title}" de ${foundDay} a ${todayKey} antes de subir.`);
+      const idx = data.week[foundDay].findIndex(t => t.id === taskId);
+      if (idx !== -1) {
+        const [movedTask] = data.week[foundDay].splice(idx, 1);
+        movedTask.day = todayKey;
+        movedTask.fromPrev = true; // 👈 marcar origen previo
+        if (!data.week[todayKey]) data.week[todayKey] = [];
+        data.week[todayKey].unshift(movedTask); // 👈 subirla arriba
+        task = movedTask;
+        foundDay = todayKey;
+      }
+    }
+
+    // 🔁 Alternar KeyTask
+    task.keyTask = !task.keyTask;
+
+    // 🩵 Si es KeyTask, la ponemos arriba
+    const idxToday = data.week[todayKey].findIndex(t => t.id === task.id);
+    if (idxToday > -1) {
+      const [moved] = data.week[todayKey].splice(idxToday, 1);
+      if (task.keyTask) {
+        data.week[todayKey].unshift(moved);
+      } else {
+        data.week[todayKey].push(moved);
+      }
+    }
+
+    console.log(
+      `🔁 "${task.title}" (${foundDay}) ahora está marcada como ${
+        task.keyTask ? "KeyTask ✅" : "Normal ⬇️"
+      }`
+    );
+
+    // 🔄 Re-render en orden lógico
+    renderWeek();
+    renderToday();
+    renderTeam();
+
+    // 🎉 Mensaje visual
+    showToast(
+      task.keyTask
+        ? `🔥 "${task.title}" marcada como Prioridad del Líder`
+        : `⬇️ "${task.title}" bajada a tarea normal`,
+      task.keyTask ? "orange" : "gray"
+    );
+  }
+
+  function showToast(text, color = "blue") {
+    const toast = document.createElement("div");
+    toast.textContent = text;
+    toast.className = `fixed bottom-4 right-4 bg-${color}-600 text-white px-4 py-2 rounded shadow-lg z-[9999]`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2500);
+  }
+
+window.saveActivity = saveActivity;
+window.closeActivityModal = closeActivityModal;
+window.openActivityModal = openActivityModal;
+
+// --- Cambiar color dinámico del slider según valor ---
+document.addEventListener("input", e => {
+  if (e.target.matches('input[type="range"]')) {
+    const val = e.target.value;
+    const r = val < 50 ? 255 : Math.floor(255 - (val - 50) * 5.1);
+    const g = val < 50 ? Math.floor(val * 5.1) : 255;
+    e.target.style.background = `linear-gradient(to right, rgb(${r},${g},80) ${val}%, #e5e7eb ${val}%)`;
+  }
+});
+
+  function closeWeek() {
+    // Confirmación visual
+    if (!confirm("¿Seguro que querés cerrar la semana? Las tareas incompletas pasarán a la próxima.")) return;
+
+    // 1️⃣ Calcular semana ISO actual
+    const today = new Date();
+    const currentWeek = getIsoWeek(today.toISOString());
+
+    // 2️⃣ Contadores
+    let total = 0, completadas = 0, retrasadas = 0;
+
+    // 3️⃣ Pasar tareas incompletas a "Next"
+    const nextWeekTasks = [];
+
+    Object.keys(data.week).forEach(day => {
+      if (day === "Next" || day === "Backlog") return;
+
+      const remaining = [];
+      (data.week[day] || []).forEach(t => {
+        total++;
+        if (t.progress === 100) {
+          completadas++;
+          // guardar en historyTasks si no estaba
+          if (!t.closedAt) t.closedAt = today.toISOString().split("T")[0];
+          if (!data.historyTasks.some(ht => ht.id === t.id)) {
+            data.historyTasks.push({ ...t });
+          }
+        } else {
+          retrasadas++;
+          t.delayed = true;
+          nextWeekTasks.push(t);
+        }
+      });
+      data.week[day] = remaining; // limpiar día
+    });
+
+    // 4️⃣ Guardar snapshot de cierre
+    data.history.push({
+      type: "weekSnapshot",
+      week: currentWeek,
+      date: today.toISOString().split("T")[0],
+      total,
+      completadas,
+      retrasadas
+    });
+
+    // 5️⃣ Mover las tareas pendientes a la próxima semana
+    if (!data.week.Next) data.week.Next = [];
+    data.week.Next = [...data.week.Next, ...nextWeekTasks];
+
+    // 6️⃣ Refrescar todo
+    renderAll();
+
+    // 7️⃣ Feedback visual
+    showToast(`📅 Semana ${currentWeek} cerrada — ${completadas}/${total} completadas`, "green");
+    saveData();
+  }
+  function updateTaskField(dayKey, taskId, field, value) {
+    const task = (data.week[dayKey] || []).find(t => t.id === taskId);
+    if (!task) return;
+
+    task[field] = value.trim();
+    saveData();
+    renderToday(); // 👈 refresca el panel actual
+    console.log(`✅ Actualizado ${field} de "${task.title}"`);
+  }
+// Función para guardar TODO en el localStorage
+    function saveData() {
+        localStorage.setItem("tableroAgilData", JSON.stringify(data));
+    }
+
+  function loadData() {
+    const saved = localStorage.getItem("tableroAgilData");
+    if (saved) {
+      try {
+        data = JSON.parse(saved);
+        normalizeData();
+        renderAll();
+      } catch (e) {
+        console.error("Error al cargar datos guardados:", e);
+      }
+    }
+  }
+  function toggleExtraFields(taskId) {
+    const fields = document.getElementById(`extraFields-${taskId}`);
+    if (!fields) return;
+
+    const btn = fields.nextElementSibling;
+    fields.classList.toggle("hidden");
+
+    if (fields.classList.contains("hidden")) {
+      btn.textContent = "Mostrar impacto / urgencia";
+      btn.classList.remove("active");
+    } else {
+      btn.textContent = "Ocultar detalles";
+      btn.classList.add("active");
+    }
+  }
+  // 🪄 Modal para editar impacto
+  function openImpactModal(taskId) {
+    const taskInfo = findTaskById(taskId);
+    if (!taskInfo) return;
+
+    const { task, day } = taskInfo;
+    const text = prompt(`🌟 Impacto de "${task.title}"\n\nExplicá cómo contribuye al objetivo:`, task.impactExplanation || "");
+    if (text !== null) {
+      updateTaskField(day, taskId, 'impactExplanation', text);
+    }
+  }
+
+  // 🪄 Modal para editar urgencia
+  function openUrgencyModal(taskId) {
+    const taskInfo = findTaskById(taskId);
+    if (!taskInfo) return;
+
+    const { task, day } = taskInfo;
+    const text = prompt(`⏰ Urgencia de "${task.title}"\n\n¿Por qué debe hacerse ahora?`, task.urgencyExplanation || "");
+    if (text !== null) {
+      updateTaskField(day, taskId, 'urgencyExplanation', text);
+    }
+  }
+
+  // 🔍 Helper para encontrar tarea en toda la semana
+  function findTaskById(taskId) {
+    for (const day of Object.keys(data.week)) {
+      const task = data.week[day].find(t => t.id === taskId);
+      if (task) return { task, day };
+    }
+    return null;
+  }
+  function autoCollapseExtraFields() {
+    document.querySelectorAll('[id^="extraFields-"]').forEach(block => {
+      const taskId = block.id.replace("extraFields-", "");
+      const textareas = block.querySelectorAll("textarea");
+      const hasContent = Array.from(textareas).some(a => a.value.trim() !== "");
+      const btn = block.nextElementSibling;
+      
+      if (hasContent && btn && !block.classList.contains("hidden")) {
+        block.classList.add("hidden");
+        btn.textContent = "➕ Mostrar impacto / urgencia";
+      }
+    });
+  }
+// 👇 NUEVA FUNCIÓN: Maneja los estados personalizados
+  function updateTaskStatus(dayKey, taskId, newStatus) {
+    const task = (data.week[dayKey] || []).find(t => t.id === taskId);
+    if (!task) return;
+
+    task.customStatus = newStatus; // Guardamos el estado ('pending_closure', 'meeting_scheduled' o '')
+    saveData();
+    renderToday(); // Refrescamos para ver el cambio visual
+  }
+  function toggleExtraFields(taskId) {
+  const container = document.getElementById(`extraFields-${taskId}`);
+  if (container) {
+    container.classList.toggle("hidden");
+    }
+  }
+// 👇 NUEVA FUNCIÓN: Marca/Desmarca el highlight de un día específico
+  function toggleDayHighlight(day, taskId) {
+      // Si ya es el highlight de ese día, lo quitamos (toggle off)
+      if (data.dailyHighlights[day] === taskId) {
+          data.dailyHighlights[day] = null;
+      } else {
+          // Si no, lo asignamos como EL highlight de ese día
+          data.dailyHighlights[day] = taskId;
+      }
+      saveData();
+      renderWeek();  // Actualizamos las estrellas en la semana
+      renderToday(); // Actualizamos el banner en la vista de hoy
+  }
+// Nueva lógica consolidada para Staff y 1:1
+    function addTopic(type) {
+        const inputId = type === 'staffTopics' ? 'newStaffTopic' : 'newOneToOne';
+        const input = document.getElementById(inputId);
+        const val = input.value.trim();
+        if (!val) return;
+
+        if (!data[type]) data[type] = [];
+
+        data[type].push({
+            id: crypto.randomUUID(),
+            text: val,
+            discussed: false,
+            definition: "",
+            date: new Date().toISOString().split('T')[0]
+        });
+
+        input.value = "";
+        renderTopics();
+        saveData(); // Guarda el cambio
+    }
+  // Función para renderizar con capacidad de marcar y definir
+    function renderTopics() {
+        const renderList = (type, containerId) => {
+            const container = document.getElementById(containerId);
+            // Usamos p-1.5 o p-2 para reducir el grosor
+            container.innerHTML = (data[type] || []).map((t) => {
+                const isDone = t.discussed;
+                return `
+                <div class="p-1.5 border rounded shadow-sm ${isDone ? 'bg-gray-50 opacity-75' : 'bg-white'} transition-all mb-1">
+                    <div class="flex justify-between items-center">
+                        <div class="flex-1 min-w-0">
+                            <div class="text-sm font-medium ${isDone ? 'line-through text-gray-400' : 'text-gray-700'} truncate" title="${t.text}">
+                                ${t.text}
+                            </div>
+                            ${t.definition ? `<div class="text-[11px] text-blue-500 italic truncate">↳ ${t.definition}</div>` : ""}
+                        </div>
+                        <div class="flex items-center space-x-2 ml-3">
+                            <button onclick="markTopicDiscussed('${type}', '${t.id}')" 
+                                    class="text-sm hover:scale-110 transition-transform ${isDone ? 'text-green-500' : 'text-gray-300'}" 
+                                    title="Marcar definición">
+                                ${isDone ? '✅' : '✔️'}
+                            </button>
+                            <button onclick="deleteTopic('${type}', '${t.id}')" 
+                                    class="text-xs text-gray-300 hover:text-red-500 transition-colors">
+                                ✖
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join("");
+        };
+
+        renderList('staffTopics', 'staffTopicsList');
+        renderList('oneToOneTopics', 'oneToOneList');
+    }
+  // Función para marcar y pedir definición
+    function markTopicDiscussed(type, id) {
+        const topic = data[type].find(t => t.id === id);
+        if (!topic) return;
+
+        if (!topic.discussed) {
+            const def = prompt(`¿Qué se definió para: "${topic.text}"?`);
+            if (def !== null) {
+                topic.discussed = true;
+                topic.definition = def || "Definido";
+                
+                // Enviamos al historial para que aparezca en el Reporte
+                data.history.push({
+                    date: new Date().toISOString().split('T')[0],
+                    retro: `📌 [${type === 'staffTopics' ? 'Staff' : '1:1'}] ${topic.text}: ${topic.definition}`
+                });
+            }
+        } else {
+            topic.discussed = false;
+        }
+
+        renderTopics();
+        renderReport(); 
+        saveData(); // Guarda el cambio de estado y la definición
+    }
+    function deleteTopic(type, id) {
+        if (!confirm("¿Eliminar este tema?")) return;
+        data[type] = data[type].filter(t => t.id !== id);
+        renderTopics();
+        saveData(); // Guarda el borrado
+    }
+  /**
+   * ENTER: Ejecuta la acción (guardar).
+   * SHIFT + ENTER: Permite el salto de línea.
+   */
+    function handleEnter(event, callback) {
+        if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault(); // Detiene el salto de línea
+            callback(); // Ejecuta la acción de guardado
+        }
+        // Si presiona SHIFT+ENTER, no entra al IF y el navegador hace el salto de línea normal
+    }
+    // --- LÓGICA DE OBJETIVOS ANUALES ---
+      // --- GESTIÓN DE OBJETIVOS ---
+        function addAnnualObjective() {
+            const name = prompt("Nombre del Objetivo Anual (ej: Integración Makro Fase 2):");
+            if (!name) return;
+            
+            // Aquí definimos la categoría que DEBE coincidir con la de tus tareas (Makro, TFM, etc.)
+            const category = prompt("Categoría de tareas vinculada (ej: Makro, TFM, Windows 11):", "General");
+            const description = prompt("Breve descripción:");
+
+            data.annualObjectives.push({
+                id: crypto.randomUUID(),
+                name: name,
+                category: category, 
+                description: description || "",
+                progress: 0,
+                history: []
+            });
+            
+            renderObjectives();
+            saveData();
+        }
+        function updateObjectiveProgress(index) {
+            const obj = data.annualObjectives[index];
+            const newProgress = prompt(`Porcentaje de avance para "${obj.name}":`, obj.progress);
+            if (newProgress === null) return;
+            
+            const note = prompt("Nota sobre este avance (opcional):");
+            
+            obj.progress = Math.min(100, Math.max(0, parseInt(newProgress) || 0));
+            obj.history.push({
+                date: new Date().toISOString().split('T')[0],
+                progress: obj.progress,
+                note: note || "Actualización de progreso"
+            });
+
+            renderObjectives();
+            renderObjectivesHistory();
+            saveData();
+        }
+      // --- GESTIÓN DE KPIs ---
+        function addKPI() {
+            const name = prompt("Nombre del KPI (ej: % Disponibilidad):");
+            if (!name) return;
+            const target = prompt("Meta numérica:", "100");
+            const unit = prompt("Unidad (%, seg, u):", "%");
+
+            data.kpis.push({
+                id: crypto.randomUUID(),
+                name: name,
+                target: parseFloat(target) || 100,
+                current: 0,
+                unit: unit
+            });
+            renderKpisPanel();
+            saveData();
+        }
+
+        function renderKpisPanel() {
+            const list = document.getElementById("kpisList");
+            if (!list) return;
+
+            list.innerHTML = (data.kpis || []).map((k, i) => `
+                <li class="bg-white p-3 rounded border shadow-sm flex justify-between items-center">
+                    <div class="flex-1">
+                        <div class="text-sm font-bold text-gray-700">${k.name}</div>
+                        <div class="text-xs text-gray-400">Meta: ${k.target}${k.unit}</div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <input type="number" value="${k.current}" 
+                               class="w-12 text-center border rounded text-sm"
+                               onchange="updateKPI(${i}, this.value)">
+                        <span class="text-sm font-semibold">${k.unit}</span>
+                    </div>
+                </li>
+            `).join("");
+        }
+
+        function updateKPI(index, val) {
+            data.kpis[index].current = parseFloat(val) || 0;
+            saveData();
+            renderKpis(); // Refresca los gráficos de la pestaña principal
+        }
+    
+    // --- LÓGICA DE CONTROLES ---
+      // --- GESTIÓN DE CONTROLES RECURRENTES ---
+        function addRecurringControl() {
+            const name = prompt("¿Qué necesitas controlar?");
+            if (!name) return;
+            
+            const category = prompt("Categoría vinculada (ej: Makro, TFM):", "General");
+            const purpose = prompt("¿Para qué sirve este control?");
+            const frequency = prompt("Frecuencia:", "Semanal");
+
+            data.recurringControls.push({
+                id: crypto.randomUUID(),
+                name: name,
+                category: category,
+                purpose: purpose || "Sin propósito definido",
+                frequency: frequency,
+                lastCheck: null,
+                history: []
+            });
+            
+            renderControls();
+            saveData();
+        }
+    function executeControl(index, result) {
+    const ctrl = data.recurringControls[index];
+    const note = prompt(`Registro de control: ${ctrl.name}\nResultado: ${result}\nIngrese nota/hallazgo:`);
+    if (note === null) return;
+
+    const execution = { date: new Date().toISOString().split('T')[0], result, note: note || "Ejecución de rutina" };
+    ctrl.lastCheck = execution.date;
+    if (!ctrl.history) ctrl.history = [];
+    ctrl.history.push(execution);
+
+    if (result === "GAP") {
+        data.history.push({ date: execution.date, retro: `🚨 GAP en ${ctrl.name}: ${execution.note}` });
+    }
+
+    renderControls();
+    renderReport(); 
+    saveData();
+    }
+
+  function renderObjectivesHistory() {
+      const container = document.getElementById("annualObjectivesHistory");
+      if (!container) return;
+      let html = "";
+      (data.annualObjectives || []).forEach(o => {
+          if (o.history && o.history.length > 0) {
+              html += `<div class="bg-gray-50 p-2 rounded border border-gray-100 mb-2">
+                  <div class="font-bold text-gray-500 text-[10px] mb-1 uppercase">${o.name}</div>
+                  <ul class="space-y-1">
+                      ${o.history.map(h => `<li class="text-[11px]"><span class="font-mono text-gray-400">${h.date}</span>: <span class="font-bold text-blue-600">${h.progress}%</span> - ${h.note}</li>`).join("")}
+                  </ul>
+              </div>`;
+          }
+      });
+      container.innerHTML = html || "<p class='text-gray-400 italic text-sm px-2'>No hay registros todavía.</p>";
+  }
+</script>
+</body>
+</html>
