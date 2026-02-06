@@ -166,21 +166,18 @@
       <div class="flex space-x-2 mb-2">
         <input id="newTodayTask" type="text" placeholder="Escribir nueva tarea..." class="flex-1 px-2 py-1 border rounded" onkeydown="handleEnter(event, addTodayNew)">
         
-        <select id="newTodayPriority" class="px-2 py-1 border rounded">
-          <option value="alta">Alta prioridad</option>
-          <option value="media">Media prioridad</option>
-          <option value="baja">Baja prioridad</option>
-        </select>
+        <div class="flex space-x-2 mb-2">
+          <input id="newTodayTask" type="text" ... >
+          
+          <select id="newTodayPriority" ... >
+              <option value="alta">Alta prioridad</option>
+              ...
+          </select>
 
-        <select id="newTodayObjective" class="px-2 py-1 border rounded">
-          <option value="Windows 11">Windows 11</option>
-          <option value="PDCZ">PDCZ</option>
-          <option value="Makro">Makro</option>
-          <option value="TFM">TFM</option>
-          <option value="Software Selection">Software Selection</option>
-          <option value="Administrativas">Administrativas</option>
-          <option value="General">General</option>
-        </select>
+      <select id="newTodayObjective" class="px-2 py-1 border rounded text-sm"> </select>
+
+          <button onclick="addTodayNew()" ... >Agregar</button>
+      </div>
 
         <button onclick="addTodayNew()" class="px-3 py-1 bg-blue-500 text-white rounded">Agregar</button>
       </div>
@@ -234,12 +231,42 @@
       </div>
     <!-- 👇 ACÁ PEGÁS EL NUEVO BLOQUE -->
     <!-- Vista Reporte -->
-    <div id="tab-report" class="tab-content hidden">
-      <h2 class="text-xl font-semibold mb-4">📊 Reporte Consolidado</h2>
-      <ul id="reportLog" class="list-none space-y-4"></ul>
-      <h3 class="text-lg font-semibold mt-6">📂 Historial de tareas completadas</h3>
-      <ul id="historyTasksList" class="list-none space-y-2"></ul>
-    </div>
+      <div id="tab-report" class="tab-content hidden px-4">
+          <h2 class="text-xl font-semibold mb-4 text-gray-800 flex items-center gap-2">📊 Reporte Estratégico Consolidado</h2>
+
+          <div class="mb-8">
+              <h3 class="text-md font-bold text-blue-600 mb-3 uppercase tracking-wider">📝 Log Táctico (Retros y Avances)</h3>
+              <ul id="reportLog" class="list-none space-y-3"></ul>
+          </div>
+
+          <div class="mb-8 border-t pt-6">
+              <h3 class="text-md font-bold text-indigo-600 mb-3 uppercase tracking-wider">🧠 Memoria Estratégica (Contexto IA)</h3>
+              <div id="contextHistoryContainer" class="space-y-3 italic text-gray-600">
+                  </div>
+          </div>
+
+          <div class="mb-8 border-t pt-6">
+              <h3 class="text-md font-bold text-green-600 mb-3 uppercase tracking-wider">📂 Historial de Cierre</h3>
+              <ul id="historyTasksList" class="list-none space-y-2"></ul>
+          </div>
+
+          <div class="mt-10 p-5 bg-indigo-50 border-2 border-indigo-200 rounded-xl shadow-sm">
+              <div class="flex items-center justify-between mb-3">
+                  <h3 class="text-indigo-800 font-bold flex items-center gap-2 text-sm">🤖 Sincronización con el Gem</h3>
+                  <span class="text-[10px] bg-indigo-200 text-indigo-700 px-2 py-0.5 rounded-full font-bold uppercase">Actualización Dinámica</span>
+              </div>
+              <p class="text-xs text-indigo-600 mb-4">Pegá acá el JSON que te devolvió el Gem tras el comando <strong>"LLEVAR A LM"</strong> para actualizar categorías y tareas sin abrir el código.</p>
+              
+              <textarea id="iaInput" 
+                        class="w-full h-32 p-3 text-xs font-mono border-2 border-indigo-100 rounded-lg mb-3 focus:border-indigo-400 focus:ring-0 outline-none bg-white shadow-inner" 
+                        placeholder='{ "categories": [...], "week": {...} }'></textarea>
+              
+              <button onclick="importFromIA()" 
+                      class="w-full bg-indigo-600 text-white py-2.5 rounded-lg font-bold hover:bg-indigo-700 transition-all shadow-md active:scale-[0.98]">
+                  🔄 Actualizar Datos del Tablero
+              </button>
+          </div>
+      </div>
     <!-- 👇 Bloque de KPIs y gráficos -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
       <div class="bg-white p-4 rounded shadow text-center">
@@ -344,26 +371,34 @@
   </div>
 
 <script>
-let data = {
-  week: { Mon: [], Tue: [], Wed: [], Thu: [], Fri: [], Next: [] },
-  staffTopics: [],
-  oneToOneTopics: [],
-  history: [],
-  summary: "",
-  highlight: null,
-  aprendizajes: [],
-  experimentos: [],
-  objectives: [
-    { name: "Windows 11", completed: 0, total: 0 },
-    { name: "PDCZ", completed: 0, total: 0 },
-    { name: "Makro", completed: 0, total: 0 },
-    { name: "TFM", completed: 0, total: 0 }
-  ],
-  // 👇 nuevos módulos
-  annualObjectives: [],
-  kpis: [],
-  recurringControls: []
-};
+  let data = {
+    // 🎯 NUEVO: Los nombres de las categorías se definen ACÁ
+    categories: ["Administrativas", "General", "Makro", "Windows 11", "TFM", "Software Selection", "licenciamiento"],
+
+    // 🧠 NUEVO: Para guardar información de contexto estratégica
+    contextHistory: [],
+
+    // Tu estructura original que ya funciona
+    week: { Mon: [], Tue: [], Wed: [], Thu: [], Fri: [], Next: [], Backlog: [] },
+    staffTopics: [],
+    oneToOneTopics: [],
+    history: [],
+    summary: "",
+    highlight: null,
+    aprendizajes: [],
+    experimentos: [],
+    objectives: [
+      { name: "Windows 11", completed: 0, total: 0 },
+      { name: "PDCZ", completed: 0, total: 0 },
+      { name: "Makro", completed: 0, total: 0 },
+      { name: "TFM", completed: 0, total: 0 }
+    ],
+    annualObjectives: [],
+    kpis: [],
+    recurringControls: [],
+    historyTasks: [],
+    dailyHighlights: { Mon: null, Tue: null, Wed: null, Thu: null, Fri: null }
+  };
 const days = { 
   Mon: "Lunes", 
   Tue: "Martes", 
@@ -523,95 +558,106 @@ function getPriorityClass(priority) {
   }
 
 // --- HOY (CON LECTURA CORRECTA DE HIGHLIGHT DIARIO) ---
-function renderToday() {
-    const dayIndex = new Date().getDay(); 
-    const dayMap = [null, "Mon", "Tue", "Wed", "Thu", "Fri"];
-    const todayKey = dayMap[dayIndex] || null;
-    const todayContainer = document.getElementById("todayTasks");
-    todayContainer.innerHTML = "";
+  function renderToday() {
+      const dayIndex = new Date().getDay(); 
+      const dayMap = [null, "Mon", "Tue", "Wed", "Thu", "Fri"];
+      const todayKey = dayMap[dayIndex] || null;
+      const todayContainer = document.getElementById("todayTasks");
+      todayContainer.innerHTML = "";
 
-    if (!todayKey) {
-        todayContainer.innerHTML = `<p class='text-gray-400 italic text-center py-4'>Fin de semana. ¡A descansar!</p>`;
-        return;
-    }
+      if (!todayKey) {
+          todayContainer.innerHTML = `<p class='text-gray-400 italic text-center py-4'>¡Buen fin de semana!</p>`;
+          return;
+      }
 
-    const dailyHighlightId = data.dailyHighlights ? data.dailyHighlights[todayKey] : null;
-    const buckets = { leader: [], normal: [], pending: [], meeting: [] };
-    const orderedDays = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-    const todayIdxNum = orderedDays.indexOf(todayKey);
+      const dailyHighlightId = data.dailyHighlights ? data.dailyHighlights[todayKey] : null;
+      // Definimos las 4 cubetas según tu necesidad
+      const buckets = { leader: [], pending: [], meeting: [], normal: [] };
+      const orderedDays = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+      const todayIdxNum = orderedDays.indexOf(todayKey);
 
-    orderedDays.forEach(day => {
-        const dIdx = orderedDays.indexOf(day);
-        if (dIdx <= todayIdxNum || (todayKey === "Mon" && day === "Fri")) {
-            (data.week[day] || []).forEach(t => {
-                if (t.delegated || (t.progress || 0) >= 100) return;
-                const enriched = { ...t, originDay: day };
+      orderedDays.forEach(day => {
+          const dIdx = orderedDays.indexOf(day);
+          if (dIdx <= todayIdxNum || (todayKey === "Mon" && day === "Fri")) {
+              (data.week[day] || []).forEach(t => {
+                  if (t.delegated || (t.progress || 0) >= 100) return;
+                  const enriched = { ...t, originDay: day };
 
-                // LÓGICA DE PRIORIDAD: La llama (keyTask) manda a la primera cubeta
-                if (t.keyTask) buckets.leader.push(enriched); 
-                else if (t.customStatus === 'pending_closure') buckets.pending.push(enriched);
-                else if (t.customStatus === 'meeting_scheduled') buckets.meeting.push(enriched);
-                else buckets.normal.push(enriched);
-            });
-        }
-    });
+                  // Lógica de Clasificación: El fuego (keyTask) es prioridad absoluta sobre el grupo
+                  if (t.keyTask) buckets.leader.push(enriched); 
+                  else if (t.customStatus === 'pending_closure') buckets.pending.push(enriched);
+                  else if (t.customStatus === 'meeting_scheduled') buckets.meeting.push(enriched);
+                  else buckets.normal.push(enriched);
+              });
+          }
+      });
 
-    const renderCard = (t, cardBg) => {
-        const isHighlight = (t.id === dailyHighlightId);
-        const historyHover = (t.activities && t.activities.length > 0)
-            ? "📜 HISTORIAL:\n" + t.activities.map(a => `• ${a.date}: ${a.text}`).join("\n")
-            : "Sin actividad registrada";
+      const renderCard = (t, cardBg) => {
+          const isHighlight = (t.id === dailyHighlightId);
+          const historyHover = (t.activities && t.activities.length > 0)
+              ? "📜 HISTORIAL:\n" + t.activities.map(a => `• ${a.date}: ${a.text}`).join("\n")
+              : "Sin actividad registrada";
 
-        return `
-        <div class="p-3 ${cardBg} rounded shadow-sm border mb-2 group transition-all hover:shadow-md cursor-move ${t.priority === 'alta' ? 'border-l-4 border-l-red-500' : ''}" 
-             title="${historyHover}" draggable="true" ondragstart="dragStartReorder(event, '${t.id}')">
-            <div class="flex justify-between items-start">
-                <div class="flex-1">
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <span class="font-medium text-gray-800">${t.title}</span>
-                        <span class="text-[10px] bg-white/80 text-gray-500 px-1.5 rounded border border-gray-100 italic">🎯 ${t.objective}</span>
-                        ${isHighlight ? '<span class="text-[10px] bg-yellow-300 font-bold px-1 rounded shadow-sm">⭐ Highlight</span>' : ''}
-                    </div>
-                </div>
-                <div class="flex items-center gap-1 shrink-0">
-                    <input type="number" value="${t.progress || 0}" onchange="updateTaskProgress('${t.originDay}', '${t.id}', this.value)" 
-                           class="w-10 text-center text-xs border rounded h-7 bg-white/70">
-                    <button onclick="toggleExtraFields('${t.id}')" title="Detalles" class="p-1 hover:bg-white/50 rounded">📝</button>
-                    <button onclick="openActivityModal('${t.originDay}', '${t.id}')" class="text-[10px] bg-blue-500 text-white px-2 py-1 rounded font-bold">ACT</button>
-                    <button onclick="toggleKeyTask('${t.originDay}', '${t.id}')" title="Prioridad del Líder" class="text-lg grayscale-0">
-                        ${t.keyTask ? '🔥' : '🌑'}
-                    </button>
-                    <button onclick="toggleDayHighlight('${todayKey}', '${t.id}')" class="${isHighlight ? 'text-yellow-500' : 'text-gray-300'} text-lg">★</button>
-                </div>
-            </div>
-        </div>`;
-    };
+          return `
+          <div class="p-3 ${cardBg} rounded shadow-sm border mb-2 group transition-all hover:shadow-md cursor-move ${t.priority === 'alta' ? 'border-l-4 border-l-red-500' : ''}" 
+               title="${historyHover}" draggable="true" ondragstart="dragStartReorder(event, '${t.id}')">
+              <div class="flex justify-between items-start">
+                  <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2 flex-wrap">
+                          <span class="font-medium text-gray-800 truncate">${t.title}</span>
+                          <span class="text-[10px] bg-white/80 text-gray-500 px-1.5 rounded border border-gray-100">🎯 ${t.objective}</span>
+                          ${isHighlight ? '<span class="text-[10px] bg-yellow-300 font-bold px-1 rounded shadow-sm">⭐ Highlight</span>' : ''}
+                      </div>
+                  </div>
+                  <div class="flex items-center gap-1 shrink-0 ml-2">
+                      <select onchange="updateTaskStatus('${t.originDay}', '${t.id}', this.value)" 
+                              class="text-[10px] border rounded h-7 bg-white/70 outline-none px-1" title="Cambiar sección">
+                          <option value="" ${!t.customStatus ? 'selected' : ''}>🧩 Tarea Día</option>
+                          <option value="pending_closure" ${t.customStatus === 'pending_closure' ? 'selected' : ''}>⏳ Cierre</option>
+                          <option value="meeting_scheduled" ${t.customStatus === 'meeting_scheduled' ? 'selected' : ''}>📅 Reunión</option>
+                      </select>
 
-    const renderSection = (title, tasks, textColor, cardBg, icon) => {
-        if (tasks.length === 0) return "";
-        return `<div class="mb-6">
-            <h3 class="flex items-center gap-2 mb-2 ${textColor} text-xs font-bold uppercase tracking-wider">${icon} ${title}</h3>
-            <div>${tasks.map(t => renderCard(t, cardBg)).join("")}</div>
-        </div>`;
-    };
+                      <input type="number" value="${t.progress || 0}" onchange="updateTaskProgress('${t.originDay}', '${t.id}', this.value)" 
+                             class="w-10 text-center text-xs border rounded h-7 bg-white/70">
+                      
+                      <button onclick="openActivityModal('${t.originDay}', '${t.id}')" class="text-[10px] bg-blue-500 text-white px-2 py-1 rounded font-bold shadow-sm">ACT</button>
+                      
+                      <button onclick="toggleKeyTask('${t.originDay}', '${t.id}')" title="Prioridad del Líder" 
+                              class="text-lg transition-all ${t.keyTask ? 'opacity-100' : 'opacity-20 grayscale hover:opacity-100'}">
+                          🔥
+                      </button>
+                      
+                      <button onclick="toggleDayHighlight('${todayKey}', '${t.id}')" class="${isHighlight ? 'text-yellow-500' : 'text-gray-300'} text-lg hover:scale-110">★</button>
+                  </div>
+              </div>
+          </div>`;
+      };
 
-    // Banner de Highlight (Banner superior)
-    const bannerBox = document.getElementById("todayHighlight");
-    const bannerText = document.getElementById("highlightText");
-    let hTitle = "(sin definir)";
-    Object.keys(data.week).forEach(d => {
-        const t = data.week[d].find(x => x.id === dailyHighlightId);
-        if (t) hTitle = t.title;
-    });
-    bannerText.innerText = hTitle;
-    bannerBox.className = dailyHighlightId ? "mb-4 p-3 bg-yellow-100 border-l-4 border-yellow-500 font-semibold rounded shadow-sm" : "mb-4 p-3 bg-gray-100 border-l-4 border-gray-400 font-semibold rounded shadow-sm";
+      const renderSection = (title, tasks, textColor, cardBg, icon) => {
+          if (tasks.length === 0) return "";
+          return `<div class="mb-6">
+              <h3 class="flex items-center gap-2 mb-2 ${textColor} text-[11px] font-bold uppercase tracking-widest">${icon} ${title}</h3>
+              <div>${tasks.map(t => renderCard(t, cardBg)).join("")}</div>
+          </div>`;
+      };
 
-    // Llamadas a render con colores de tarjeta
-    todayContainer.innerHTML += renderSection("Prioridades del Líder", buckets.leader, "text-blue-600", "bg-blue-50/80", "🔥");
-    todayContainer.innerHTML += renderSection("Pendientes de Cierre", buckets.pending, "text-orange-600", "bg-orange-50/80", "⏳");
-    todayContainer.innerHTML += renderSection("Reuniones Programadas", buckets.meeting, "text-indigo-600", "bg-indigo-50/80", "📅");
-    todayContainer.innerHTML += renderSection("Tareas del Día", buckets.normal, "text-gray-500", "bg-white", "🧩");
-}
+      // Actualizar el banner superior
+      const bannerBox = document.getElementById("todayHighlight");
+      const bannerText = document.getElementById("highlightText");
+      let hTitle = "(sin definir)";
+      Object.keys(data.week).forEach(d => {
+          const t = data.week[d].find(x => x.id === dailyHighlightId);
+          if (t) hTitle = t.title;
+      });
+      bannerText.innerText = hTitle;
+      bannerBox.className = dailyHighlightId ? "mb-4 p-3 bg-yellow-100 border-l-4 border-yellow-500 font-semibold rounded shadow-sm" : "mb-4 p-3 bg-gray-100 border-l-4 border-gray-400 font-semibold rounded shadow-sm";
+
+      // Inyección de las 4 secciones con sus estilos
+      todayContainer.innerHTML += renderSection("Prioridades del Líder", buckets.leader, "text-blue-600", "bg-blue-50/80", "🔥");
+      todayContainer.innerHTML += renderSection("Pendientes de Cierre", buckets.pending, "text-orange-600", "bg-orange-50/80", "⏳");
+      todayContainer.innerHTML += renderSection("Programado para Reunión", buckets.meeting, "text-indigo-600", "bg-indigo-50/80", "📅");
+      todayContainer.innerHTML += renderSection("Tareas del Día", buckets.normal, "text-gray-500", "bg-white", "🧩");
+  }
 // --- BARRA DE AVANCE ---
 function updateTaskProgress(dayKey, ref, value) {
   if (!data.week[dayKey]) return;
@@ -1124,6 +1170,7 @@ document.getElementById("importFile").addEventListener("change", (e) => {
   // Normalización: asegurar que siempre existan contenedores clave
     // --- RENDER GENERAL ---
       function renderAll() {
+          renderCategorySelects();
           renderToday();
           renderWeek();
           renderTeam();
@@ -1574,25 +1621,15 @@ function renderKpis() {
   });
 }
   function normalizeData() {
-      // ... (mantené tu lógica de week y historyTasks arriba)
-
-      if (!data.annualObjectives) data.annualObjectives = [];
-      if (!data.recurringControls) data.recurringControls = [];
-
-      // --- Normalizar Objetivos Anuales ---
-      data.annualObjectives.forEach(o => {
-          if (!o.category) o.category = "General"; 
-          if (!o.history) o.history = [];
-      });
-
-      // --- Normalizar Controles (Recupera el Propósito) ---
-      data.recurringControls.forEach(c => {
-          if (!c.purpose) c.purpose = "Propósito no definido";
-          if (!c.category) c.category = "General"; // Campo para vincular con Objetivos
-          if (!c.history) c.history = [];
-      });
-
-      // ... (mantené la lógica de staffTopics/oneToOneTopics abajo)
+      // Si el JSON viene de la IA sin categorías, ponemos las básicas
+      if (!data.categories || data.categories.length === 0) {
+          data.categories = ["Administrativas", "General", "Makro", "Windows 11", "TFM", "licenciamiento"];
+      }
+      if (!data.contextHistory) data.contextHistory = [];
+      if (!data.historyTasks) data.historyTasks = [];
+      if (!data.dailyHighlights) data.dailyHighlights = { Mon:null, Tue:null, Wed:null, Thu:null, Fri:null };
+      
+      saveData();
   }
 
 // --- OBJETIVOS ---
@@ -2374,22 +2411,67 @@ document.addEventListener("input", e => {
     saveData();
     }
 
-  function renderObjectivesHistory() {
-      const container = document.getElementById("annualObjectivesHistory");
-      if (!container) return;
-      let html = "";
-      (data.annualObjectives || []).forEach(o => {
-          if (o.history && o.history.length > 0) {
-              html += `<div class="bg-gray-50 p-2 rounded border border-gray-100 mb-2">
-                  <div class="font-bold text-gray-500 text-[10px] mb-1 uppercase">${o.name}</div>
-                  <ul class="space-y-1">
-                      ${o.history.map(h => `<li class="text-[11px]"><span class="font-mono text-gray-400">${h.date}</span>: <span class="font-bold text-blue-600">${h.progress}%</span> - ${h.note}</li>`).join("")}
-                  </ul>
-              </div>`;
+    function renderObjectivesHistory() {
+        const container = document.getElementById("annualObjectivesHistory");
+        if (!container) return;
+        let html = "";
+        (data.annualObjectives || []).forEach(o => {
+            if (o.history && o.history.length > 0) {
+                html += `<div class="bg-gray-50 p-2 rounded border border-gray-100 mb-2">
+                    <div class="font-bold text-gray-500 text-[10px] mb-1 uppercase">${o.name}</div>
+                    <ul class="space-y-1">
+                        ${o.history.map(h => `<li class="text-[11px]"><span class="font-mono text-gray-400">${h.date}</span>: <span class="font-bold text-blue-600">${h.progress}%</span> - ${h.note}</li>`).join("")}
+                    </ul>
+                </div>`;
+            }
+        });
+        container.innerHTML = html || "<p class='text-gray-400 italic text-sm px-2'>No hay registros todavía.</p>";
+    }
+// 1. Llena los desplegables de categorías desde el JSON
+    function renderCategorySelects() {
+        const selects = ["newTodayObjective", "newWeekObjective"]; 
+        selects.forEach(id => {
+            const el = document.getElementById(id);
+            if (el && data.categories) {
+                // Limpia y genera opciones nuevas desde el JSON
+                el.innerHTML = data.categories.map(cat => 
+                    `<option value="${cat}">${cat}</option>`
+                ).join("");
+            }
+        });
+    }
+// 2. Procesa el JSON que te da el Gem
+  function importFromIA() {
+      const input = document.getElementById("iaInput");
+      try {
+          const newData = JSON.parse(input.value);
+          if (confirm("⚠️ ¿Sincronizar con IA? Esto actualizará categorías y tareas en tu navegador.")) {
+              data = newData;
+              saveData(); // Guarda en localStorage, no en el archivo físico
+              renderAll();
+              input.value = "";
+              showToast("🤖 Tablero actualizado por la IA", "blue");
           }
-      });
-      container.innerHTML = html || "<p class='text-gray-400 italic text-sm px-2'>No hay registros todavía.</p>";
+      } catch (e) {
+          alert("❌ Error: Formato de JSON inválido.");
+      }
   }
+// 3. Renderiza la "Memoria Estratégica" (Contexto) en el Reporte
+    function renderContextHistory() {
+        const container = document.getElementById("reportLog");
+        if (!data.contextHistory || data.contextHistory.length === 0) return;
+
+        let html = `<h3 class="text-lg font-bold mt-8 mb-4 text-indigo-700">🧠 Memoria Estratégica (Contexto)</h3>`;
+        data.contextHistory.forEach(ctx => {
+            html += `
+                <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-100 mb-2 shadow-sm">
+                    <div class="text-[10px] font-bold text-indigo-400 uppercase">${ctx.date} | ${ctx.category}</div>
+                    <div class="text-sm text-indigo-900 font-medium">${ctx.title}</div>
+                    <div class="text-xs text-indigo-700 italic mt-1">${ctx.note}</div>
+                </div>`;
+        });
+        container.insertAdjacentHTML('afterbegin', html);
+    }
 </script>
 </body>
 </html>
