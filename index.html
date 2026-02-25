@@ -1501,11 +1501,15 @@ function renderAprendizajes() {
     </div>`
   ).join("");
 }
-function addAprendizaje() {
-  const val = document.getElementById("newAprendizaje").value.trim();
-  if (val) { data.aprendizajes.push(val); document.getElementById("newAprendizaje").value=""; renderAprendizajes(); }
-  saveData();
-}
+  function addAprendizaje() {
+    const val = document.getElementById("newAprendizaje").value.trim();
+    if (val) { 
+      data.aprendizajes.push(val); 
+      document.getElementById("newAprendizaje").value = ""; 
+      saveData(); // <--- AGREGAR ESTO
+      renderAprendizajes(); 
+    }
+  }
 function deleteAprendizaje(i) { data.aprendizajes.splice(i,1); renderAprendizajes(); saveData();}
 
 // --- EXPERIMENTOS ---
@@ -1517,10 +1521,15 @@ function renderExperimentos() {
     </div>`
   ).join("");
 }
-function addExperimento() {
-  const val = document.getElementById("newExperimento").value.trim();
-  if (val) { data.experimentos.push(val); document.getElementById("newExperimento").value=""; renderExperimentos(); }
-}
+  function addExperimento() {
+    const val = document.getElementById("newExperimento").value.trim();
+    if (val) { 
+      data.experimentos.push(val); 
+      document.getElementById("newExperimento").value = ""; 
+      saveData(); // <--- AGREGAR ESTO
+      renderExperimentos(); 
+    }
+  }
 function deleteExperimento(i) { data.experimentos.splice(i,1); renderExperimentos(); }
 
 // --- RETRO ---
@@ -1654,7 +1663,7 @@ document.getElementById("importFile").addEventListener("change", (e) => {
           renderToday();
           renderWeek();
           renderTeam();
-          renderTopics(); // <--- Esta línea hace que aparezcan los temas guardados
+          renderTopics();
           renderHistory();
           renderReport();
           renderKpis();
@@ -1664,6 +1673,8 @@ document.getElementById("importFile").addEventListener("change", (e) => {
           renderControls();
           renderObjectivesHistory();
           renderControlsHistory();
+          renderAprendizajes(); // <--- AGREGAR ESTO
+          renderExperimentos(); // <--- AGREGAR ESTO
       }
   let currentTaskRef = null; // 👈 guarda referencia a la tarea que se está cerrando
 
@@ -2921,52 +2932,42 @@ document.addEventListener("input", e => {
         });
     }
 // 2. Procesa el JSON que te da el Gem
-  function importFromIA() {
-      const input = document.getElementById("iaInput");
-      try {
-          const newData = JSON.parse(input.value);
-          if (!confirm("⚠️ ¿Sincronizar con IA? Esto SUMARÁ los nuevos datos a tus tareas actuales.")) return;
+    function importFromIA() {
+        const input = document.getElementById("iaInput");
+        try {
+            const newData = JSON.parse(input.value);
+            if (!confirm("⚠️ ¿Sincronizar con IA? Se sumarán los datos nuevos sin borrar los tuyos.")) return;
 
-          // 1. Unir Categorías (sin duplicar nombres)
-          if (newData.categories) {
-              data.categories = [...new Set([...data.categories, ...newData.categories])];
-          }
+            if (newData.categories) data.categories = [...new Set([...data.categories, ...newData.categories])];
+            if (newData.contextHistory) data.contextHistory = [...newData.contextHistory, ...data.contextHistory].slice(0, 50);
 
-          // 2. Unir ContextHistory (Memoria Estratégica)
-          if (newData.contextHistory) {
-              data.contextHistory = [...newData.contextHistory, ...data.contextHistory].slice(0, 50);
-          }
+            const daysKeys = ["Mon", "Tue", "Wed", "Thu", "Fri", "Next", "Backlog"];
+            daysKeys.forEach(day => {
+                if (newData.week && newData.week[day]) {
+                    newData.week[day].forEach(newTask => {
+                        const exists = data.week[day].some(t => t.id === newTask.id);
+                        if (!exists) data.week[day].push(newTask);
+                    });
+                }
+            });
 
-          // 3. Unir Semanas (Merge día por día)
-          const daysKeys = ["Mon", "Tue", "Wed", "Thu", "Fri", "Next", "Backlog"];
-          daysKeys.forEach(day => {
-              if (newData.week && newData.week[day]) {
-                  newData.week[day].forEach(newTask => {
-                      // Solo agrega si el ID no existe ya en ese día
-                      const exists = data.week[day].some(t => t.id === newTask.id);
-                      if (!exists) data.week[day].push(newTask);
-                  });
-              }
-          });
+            // Limpieza automática de datos mal formateados (Ej: "0%" -> 0)
+            if (newData.kpis) {
+                newData.kpis.forEach(k => {
+                    k.current = typeof k.current === 'string' ? parseFloat(k.current.replace('%','')) || 0 : k.current;
+                    k.target = typeof k.target === 'string' ? parseFloat(k.target.replace('%','')) || 100 : k.target;
+                });
+                data.kpis = newData.kpis;
+            }
 
-          // 4. Limpieza de KPIs (convierte texto "0%" a número 0)
-          if (newData.kpis) {
-              newData.kpis.forEach(k => {
-                  if (typeof k.current === 'string') k.current = parseFloat(k.current) || 0;
-                  if (typeof k.target === 'string') k.target = parseFloat(k.target) || 100;
-              });
-              data.kpis = newData.kpis; 
-          }
-
-          saveData();
-          renderAll();
-          input.value = "";
-          showToast("🤖 Datos integrados exitosamente", "blue");
-      } catch (e) {
-          console.error("Error en Import:", e);
-          alert("❌ Error: Formato de JSON inválido o incompatible.");
-      }
-  }
+            saveData();
+            renderAll();
+            input.value = "";
+            alert("🚀 Sincronización exitosa.");
+        } catch (e) {
+            alert("❌ Error: Formato de JSON inválido. Verificá que no falten comas o llaves.");
+        }
+    }
 // 3. Renderiza la "Memoria Estratégica" (Contexto) en el Reporte
     function renderContextHistory() {
         const container = document.getElementById("reportLog");
