@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tablero Ágil — Semana v3</title>
+  <title>Tablero Ágil — Semana v4</title>
   <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAIlSURBVHhe7Zs9jhNBEMdfxwARiQgFjuAAHIAzIHEGjBQJkBwAGQkSOANG4hCcgBCJg4hgwVos2/F6bFf1fM30vk9qm21/XfOr6untHwB+2t3d3U9FUXwviqI4L4ri/nQ6fTi/v/9V52G32+1/8vPj6XT64fL6+k+dp12SJP+8KIrP0+n06+X19Y86T7tJkvz1oijetF+eTqcfL6+v/9V52BVF8aX98mo6nX66vL7+VedhlyTJV/tN/Pb29tfl9fXvOg+79k1w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBPdNcN8E901w3wT3TXDfBHdamO/4oP3y9PL6+k+dh939/f2X9svLy+vrf3UedkmSfG2/vLy8vv5X52H3B4m9/eKCOA9CAAAAAElFTkSuQmCC">
     <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -78,7 +78,7 @@
 <body class="bg-gray-100 text-gray-900">
   <div class="max-w-7xl mx-auto py-6">
     <header class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold">📅 Tablero Ágil — Semana v3</h1>
+      <h1 class="text-2xl font-bold">📅 Tablero Ágil — Semana v4</h1>
       <div class="space-x-2">
         <button id="importBtn" class="px-3 py-1 bg-gray-200 rounded">⬆️ Importar</button>
         <input type="file" id="importFile" class="hidden" accept="application/json">
@@ -1533,15 +1533,21 @@ function renderExperimentos() {
 function deleteExperimento(i) { data.experimentos.splice(i,1); renderExperimentos(); }
 
 // --- RETRO ---
-function saveDailyRetro() {
-  const retro = document.getElementById("dailyRetro").value;
-  if (retro.trim()) {
-    data.history.push({ date: new Date().toISOString().split('T')[0], retro });
-    document.getElementById("dailyRetro").value = "";
-    renderHistory();
-    renderReport(); // 👈 también actualiza el reporte consolidado
+  function saveDailyRetro() {
+    const retroInput = document.getElementById("dailyRetro"); // Asegúrate que el ID coincida con el textarea
+    const retroText = retroInput.value.trim();
+    if (retroText) {
+      data.history.push({ 
+        date: new Date().toISOString().split('T')[0], 
+        retro: retroText 
+      });
+      retroInput.value = ""; // Limpiar campo
+      saveData();      // <--- PERSISTENCIA
+      renderHistory(); // Refresca lista en pestaña Semana
+      renderReport();  // Refresca lista en pestaña Reporte
+      alert("✅ Retro guardada");
+    }
   }
-}
   function renderHistory() {
     const grouped = {};
     const todayStr = new Date().toISOString().split("T")[0]; // fecha actual YYYY-MM-DD
@@ -3813,11 +3819,27 @@ function renderAprendizajes() {
     </div>`
   ).join("");
 }
-function addAprendizaje() {
-  const val = document.getElementById("newAprendizaje").value.trim();
-  if (val) { data.aprendizajes.push(val); document.getElementById("newAprendizaje").value=""; renderAprendizajes(); }
-  saveData();
-}
+  function addAprendizaje() {
+    const input = document.getElementById("newAprendizaje");
+    const val = input.value.trim();
+    if (val) { 
+      data.aprendizajes.push(val); 
+      input.value = ""; 
+      saveData(); 
+      renderAprendizajes(); // <--- Dibuja la lista nueva
+    }
+  }
+
+  function addExperimento() {
+    const input = document.getElementById("newExperimento");
+    const val = input.value.trim();
+    if (val) { 
+      data.experimentos.push(val); 
+      input.value = ""; 
+      saveData(); 
+      renderExperimentos(); // <--- Dibuja la lista nueva
+    }
+  }
 function deleteAprendizaje(i) { data.aprendizajes.splice(i,1); renderAprendizajes(); saveData();}
 
 // --- EXPERIMENTOS ---
@@ -3972,7 +3994,7 @@ document.getElementById("importFile").addEventListener("change", (e) => {
           renderToday();
           renderWeek();
           renderTeam();
-          renderTopics(); // <--- Esta línea hace que aparezcan los temas guardados
+          renderTopics();
           renderHistory();
           renderReport();
           renderKpis();
@@ -3982,6 +4004,9 @@ document.getElementById("importFile").addEventListener("change", (e) => {
           renderControls();
           renderObjectivesHistory();
           renderControlsHistory();
+          // --- AGREGAR ESTAS DOS LÍNEAS ---
+          renderAprendizajes();
+          renderExperimentos();
       }
   let currentTaskRef = null; // 👈 guarda referencia a la tarea que se está cerrando
 
