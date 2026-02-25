@@ -1033,105 +1033,111 @@ function getPriorityClass(priority) {
 
 // --- HOY (CON LECTURA CORRECTA DE HIGHLIGHT DIARIO) ---
   function renderToday() {
-      const dayIndex = new Date().getDay(); 
-      const dayMap = [null, "Mon", "Tue", "Wed", "Thu", "Fri"];
-      const todayKey = dayMap[dayIndex] || null;
-      const todayContainer = document.getElementById("todayTasks");
-      todayContainer.innerHTML = "";
+        const dayIndex = new Date().getDay(); 
+        const dayMap = [null, "Mon", "Tue", "Wed", "Thu", "Fri"];
+        const todayKey = dayMap[dayIndex] || null;
+        const todayContainer = document.getElementById("todayTasks");
+        todayContainer.innerHTML = "";
 
-      if (!todayKey) {
-          todayContainer.innerHTML = `<p class='text-gray-400 italic text-center py-4'>¡Buen fin de semana!</p>`;
-          return;
-      }
+        if (!todayKey) {
+            todayContainer.innerHTML = `<p class='text-gray-400 italic text-center py-4'>¡Buen fin de semana!</p>`;
+            return;
+        }
 
-      const dailyHighlightId = data.dailyHighlights ? data.dailyHighlights[todayKey] : null;
-      // Definimos las 4 cubetas según tu necesidad
-      const buckets = { leader: [], pending: [], meeting: [], normal: [] };
-      const orderedDays = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-      const todayIdxNum = orderedDays.indexOf(todayKey);
+        const dailyHighlightId = data.dailyHighlights ? data.dailyHighlights[todayKey] : null;
+        const buckets = { leader: [], pending: [], meeting: [], normal: [] };
+        const orderedDays = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+        const todayIdxNum = orderedDays.indexOf(todayKey);
 
-      orderedDays.forEach(day => {
-          const dIdx = orderedDays.indexOf(day);
-          if (dIdx <= todayIdxNum || (todayKey === "Mon" && day === "Fri")) {
-              (data.week[day] || []).forEach(t => {
-                  if (t.delegated || (t.progress || 0) >= 100) return;
-                  const enriched = { ...t, originDay: day };
+        orderedDays.forEach(day => {
+            const dIdx = orderedDays.indexOf(day);
+            if (dIdx <= todayIdxNum || (todayKey === "Mon" && day === "Fri")) {
+                (data.week[day] || []).forEach(t => {
+                    if (t.delegated || (t.progress || 0) >= 100) return;
+                    const enriched = { ...t, originDay: day };
 
-                  // Lógica de Clasificación: El fuego (keyTask) es prioridad absoluta sobre el grupo
-                  if (t.keyTask) buckets.leader.push(enriched); 
-                  else if (t.customStatus === 'pending_closure') buckets.pending.push(enriched);
-                  else if (t.customStatus === 'meeting_scheduled') buckets.meeting.push(enriched);
-                  else buckets.normal.push(enriched);
-              });
-          }
-      });
+                    if (t.keyTask) buckets.leader.push(enriched); 
+                    else if (t.customStatus === 'pending_closure') buckets.pending.push(enriched);
+                    else if (t.customStatus === 'meeting_scheduled') buckets.meeting.push(enriched);
+                    else buckets.normal.push(enriched);
+                });
+            }
+        });
 
-      const renderCard = (t, cardBg) => {
-          const isHighlight = (t.id === dailyHighlightId);
-          const historyHover = (t.activities && t.activities.length > 0)
-              ? "📜 HISTORIAL:\n" + t.activities.map(a => `• ${a.date}: ${a.text}`).join("\n")
-              : "Sin actividad registrada";
+        const renderCard = (t, cardBg) => {
+            const isHighlight = (t.id === dailyHighlightId);
+            const historyHover = (t.activities && t.activities.length > 0)
+                ? "📜 HISTORIAL:\n" + t.activities.map(a => `• ${a.date}: ${a.text}`).join("\n")
+                : "Sin actividad registrada";
 
-          return `
-          <div class="p-3 ${cardBg} rounded shadow-sm border mb-2 group transition-all hover:shadow-md cursor-move ${t.priority === 'alta' ? 'border-l-4 border-l-red-500' : ''}" 
-               title="${historyHover}" draggable="true" ondragstart="dragStartReorder(event, '${t.id}')">
-              <div class="flex justify-between items-start">
-                  <div class="flex-1 min-w-0">
-                      <div class="flex items-center gap-2 flex-wrap">
-                          <span class="font-medium text-gray-800 truncate">${t.title}</span>
-                          <span class="text-[10px] bg-white/80 text-gray-500 px-1.5 rounded border border-gray-100">🎯 ${t.objective}</span>
-                          ${isHighlight ? '<span class="text-[10px] bg-yellow-300 font-bold px-1 rounded shadow-sm">⭐ Highlight</span>' : ''}
-                      </div>
-                  </div>
-                  <div class="flex items-center gap-1 shrink-0 ml-2">
-                      <select onchange="updateTaskStatus('${t.originDay}', '${t.id}', this.value)" 
-                              class="text-[10px] border rounded h-7 bg-white/70 outline-none px-1" title="Cambiar sección">
-                          <option value="" ${!t.customStatus ? 'selected' : ''}>🧩 Tarea Día</option>
-                          <option value="pending_closure" ${t.customStatus === 'pending_closure' ? 'selected' : ''}>⏳ Cierre</option>
-                          <option value="meeting_scheduled" ${t.customStatus === 'meeting_scheduled' ? 'selected' : ''}>📅 Reunión</option>
-                      </select>
+            return `
+            <div class="p-3 ${cardBg} rounded shadow-sm border mb-2 group transition-all hover:shadow-md cursor-move ${t.priority === 'alta' ? 'border-l-4 border-l-red-500' : ''}" 
+                 title="${historyHover}" draggable="true" ondragstart="dragStartReorder(event, '${t.id}')">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="font-medium text-gray-800 truncate">${t.title}</span>
+                            <span class="text-[10px] bg-white/80 text-gray-500 px-1.5 rounded border border-gray-100">🎯 ${t.objective}</span>
+                            ${isHighlight ? '<span class="text-[10px] bg-yellow-300 font-bold px-1 rounded shadow-sm">⭐ Highlight</span>' : ''}
+                        </div>
+                        
+                        <div class="flex items-center gap-3 mt-2">
+                            <button onclick="openImpactModal('${t.id}')" class="text-[9px] flex items-center gap-1 transition-colors hover:text-blue-600">
+                                ${t.impactExplanation ? '<span class="text-blue-600 font-bold">🌟 Impacto OK</span>' : '<span class="text-gray-400 underline">+ Impacto</span>'}
+                            </button>
+                            <button onclick="openUrgencyModal('${t.id}')" class="text-[9px] flex items-center gap-1 transition-colors hover:text-orange-600">
+                                ${t.urgencyExplanation ? '<span class="text-orange-600 font-bold">⏰ Urgencia OK</span>' : '<span class="text-gray-400 underline">+ Urgencia</span>'}
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-1 shrink-0 ml-2">
+                        <select onchange="updateTaskStatus('${t.originDay}', '${t.id}', this.value)" 
+                                class="text-[10px] border rounded h-7 bg-white/70 outline-none px-1" title="Cambiar sección">
+                            <option value="" ${!t.customStatus ? 'selected' : ''}>🧩 Tarea Día</option>
+                            <option value="pending_closure" ${t.customStatus === 'pending_closure' ? 'selected' : ''}>⏳ Cierre</option>
+                            <option value="meeting_scheduled" ${t.customStatus === 'meeting_scheduled' ? 'selected' : ''}>📅 Reunión</option>
+                        </select>
 
-                      <input type="number" value="${t.progress || 0}" onchange="updateTaskProgress('${t.originDay}', '${t.id}', this.value)" 
-                             class="w-10 text-center text-xs border rounded h-7 bg-white/70">
-                      
-                      <button onclick="openActivityModal('${t.originDay}', '${t.id}')" class="text-[10px] bg-blue-500 text-white px-2 py-1 rounded font-bold shadow-sm">ACT</button>
-                      
-                      <button onclick="toggleKeyTask('${t.originDay}', '${t.id}')" title="Prioridad del Líder" 
-                              class="text-lg transition-all ${t.keyTask ? 'opacity-100' : 'opacity-20 grayscale hover:opacity-100'}">
-                          🔥
-                      </button>
-                      
-                      <button onclick="toggleDayHighlight('${todayKey}', '${t.id}')" class="${isHighlight ? 'text-yellow-500' : 'text-gray-300'} text-lg hover:scale-110">★</button>
-                  </div>
-              </div>
-          </div>`;
-      };
+                        <input type="number" value="${t.progress || 0}" onchange="updateTaskProgress('${t.originDay}', '${t.id}', this.value)" 
+                               class="w-10 text-center text-xs border rounded h-7 bg-white/70">
+                        
+                        <button onclick="openActivityModal('${t.originDay}', '${t.id}')" class="text-[10px] bg-blue-500 text-white px-2 py-1 rounded font-bold shadow-sm">ACT</button>
+                        
+                        <button onclick="toggleKeyTask('${t.originDay}', '${t.id}')" title="Prioridad del Líder" 
+                                class="text-lg transition-all ${t.keyTask ? 'opacity-100' : 'opacity-20 grayscale hover:opacity-100'}">
+                            🔥
+                        </button>
+                        
+                        <button onclick="toggleDayHighlight('${todayKey}', '${t.id}')" class="${isHighlight ? 'text-yellow-500' : 'text-gray-300'} text-lg hover:scale-110">★</button>
+                    </div>
+                </div>
+            </div>`;
+        };
 
-      const renderSection = (title, tasks, textColor, cardBg, icon) => {
-          if (tasks.length === 0) return "";
-          return `<div class="mb-6">
-              <h3 class="flex items-center gap-2 mb-2 ${textColor} text-[11px] font-bold uppercase tracking-widest">${icon} ${title}</h3>
-              <div>${tasks.map(t => renderCard(t, cardBg)).join("")}</div>
-          </div>`;
-      };
+        const renderSection = (title, tasks, textColor, cardBg, icon) => {
+            if (tasks.length === 0) return "";
+            return `<div class="mb-6">
+                <h3 class="flex items-center gap-2 mb-2 ${textColor} text-[11px] font-bold uppercase tracking-widest">${icon} ${title}</h3>
+                <div>${tasks.map(t => renderCard(t, cardBg)).join("")}</div>
+            </div>`;
+        };
 
-      // Actualizar el banner superior
-      const bannerBox = document.getElementById("todayHighlight");
-      const bannerText = document.getElementById("highlightText");
-      let hTitle = "(sin definir)";
-      Object.keys(data.week).forEach(d => {
-          const t = data.week[d].find(x => x.id === dailyHighlightId);
-          if (t) hTitle = t.title;
-      });
-      bannerText.innerText = hTitle;
-      bannerBox.className = dailyHighlightId ? "mb-4 p-3 bg-yellow-100 border-l-4 border-yellow-500 font-semibold rounded shadow-sm" : "mb-4 p-3 bg-gray-100 border-l-4 border-gray-400 font-semibold rounded shadow-sm";
+        const bannerBox = document.getElementById("todayHighlight");
+        const bannerText = document.getElementById("highlightText");
+        let hTitle = "(sin definir)";
+        Object.keys(data.week).forEach(d => {
+            const t = data.week[d].find(x => x.id === dailyHighlightId);
+            if (t) hTitle = t.title;
+        });
+        bannerText.innerText = hTitle;
+        bannerBox.className = dailyHighlightId ? "mb-4 p-3 bg-yellow-100 border-l-4 border-yellow-500 font-semibold rounded shadow-sm" : "mb-4 p-3 bg-gray-100 border-l-4 border-gray-400 font-semibold rounded shadow-sm";
 
-      // Inyección de las 4 secciones con sus estilos
-      todayContainer.innerHTML += renderSection("Prioridades del Líder", buckets.leader, "text-blue-600", "bg-blue-50/80", "🔥");
-      todayContainer.innerHTML += renderSection("Pendientes de Cierre", buckets.pending, "text-orange-600", "bg-orange-50/80", "⏳");
-      todayContainer.innerHTML += renderSection("Programado para Reunión", buckets.meeting, "text-indigo-600", "bg-indigo-50/80", "📅");
-      todayContainer.innerHTML += renderSection("Tareas del Día", buckets.normal, "text-gray-500", "bg-white", "🧩");
-  }
+        todayContainer.innerHTML += renderSection("Prioridades del Líder", buckets.leader, "text-blue-600", "bg-blue-50/80", "🔥");
+        todayContainer.innerHTML += renderSection("Pendientes de Cierre", buckets.pending, "text-orange-600", "bg-orange-50/80", "⏳");
+        todayContainer.innerHTML += renderSection("Programado para Reunión", buckets.meeting, "text-indigo-600", "bg-indigo-50/80", "📅");
+        todayContainer.innerHTML += renderSection("Tareas del Día", buckets.normal, "text-gray-500", "bg-white", "🧩");
+    }
 // --- BARRA DE AVANCE ---
 function updateTaskProgress(dayKey, ref, value) {
   if (!data.week[dayKey]) return;
