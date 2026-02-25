@@ -2925,15 +2925,46 @@ document.addEventListener("input", e => {
       const input = document.getElementById("iaInput");
       try {
           const newData = JSON.parse(input.value);
-          if (confirm("⚠️ ¿Sincronizar con IA? Esto actualizará categorías y tareas en tu navegador.")) {
-              data = newData;
-              saveData(); // Guarda en localStorage, no en el archivo físico
-              renderAll();
-              input.value = "";
-              showToast("🤖 Tablero actualizado por la IA", "blue");
+          if (!confirm("⚠️ ¿Sincronizar con IA? Esto SUMARÁ los nuevos datos a tus tareas actuales.")) return;
+
+          // 1. Unir Categorías (sin duplicar nombres)
+          if (newData.categories) {
+              data.categories = [...new Set([...data.categories, ...newData.categories])];
           }
+
+          // 2. Unir ContextHistory (Memoria Estratégica)
+          if (newData.contextHistory) {
+              data.contextHistory = [...newData.contextHistory, ...data.contextHistory].slice(0, 50);
+          }
+
+          // 3. Unir Semanas (Merge día por día)
+          const daysKeys = ["Mon", "Tue", "Wed", "Thu", "Fri", "Next", "Backlog"];
+          daysKeys.forEach(day => {
+              if (newData.week && newData.week[day]) {
+                  newData.week[day].forEach(newTask => {
+                      // Solo agrega si el ID no existe ya en ese día
+                      const exists = data.week[day].some(t => t.id === newTask.id);
+                      if (!exists) data.week[day].push(newTask);
+                  });
+              }
+          });
+
+          // 4. Limpieza de KPIs (convierte texto "0%" a número 0)
+          if (newData.kpis) {
+              newData.kpis.forEach(k => {
+                  if (typeof k.current === 'string') k.current = parseFloat(k.current) || 0;
+                  if (typeof k.target === 'string') k.target = parseFloat(k.target) || 100;
+              });
+              data.kpis = newData.kpis; 
+          }
+
+          saveData();
+          renderAll();
+          input.value = "";
+          showToast("🤖 Datos integrados exitosamente", "blue");
       } catch (e) {
-          alert("❌ Error: Formato de JSON inválido.");
+          console.error("Error en Import:", e);
+          alert("❌ Error: Formato de JSON inválido o incompatible.");
       }
   }
 // 3. Renderiza la "Memoria Estratégica" (Contexto) en el Reporte
@@ -3366,46 +3397,32 @@ function getPriorityClass(priority) {
           }
       });
 
-      const renderCard = (t, cardBg) => {
-          const isHighlight = (t.id === dailyHighlightId);
-          const historyHover = (t.activities && t.activities.length > 0)
-              ? "📜 HISTORIAL:\n" + t.activities.map(a => `• ${a.date}: ${a.text}`).join("\n")
-              : "Sin actividad registrada";
-
-          return `
-          <div class="p-3 ${cardBg} rounded shadow-sm border mb-2 group transition-all hover:shadow-md cursor-move ${t.priority === 'alta' ? 'border-l-4 border-l-red-500' : ''}" 
-               title="${historyHover}" draggable="true" ondragstart="dragStartReorder(event, '${t.id}')">
-              <div class="flex justify-between items-start">
-                  <div class="flex-1 min-w-0">
-                      <div class="flex items-center gap-2 flex-wrap">
-                          <span class="font-medium text-gray-800 truncate">${t.title}</span>
-                          <span class="text-[10px] bg-white/80 text-gray-500 px-1.5 rounded border border-gray-100">🎯 ${t.objective}</span>
-                          ${isHighlight ? '<span class="text-[10px] bg-yellow-300 font-bold px-1 rounded shadow-sm">⭐ Highlight</span>' : ''}
-                      </div>
-                  </div>
-                  <div class="flex items-center gap-1 shrink-0 ml-2">
-                      <select onchange="updateTaskStatus('${t.originDay}', '${t.id}', this.value)" 
-                              class="text-[10px] border rounded h-7 bg-white/70 outline-none px-1" title="Cambiar sección">
-                          <option value="" ${!t.customStatus ? 'selected' : ''}>🧩 Tarea Día</option>
-                          <option value="pending_closure" ${t.customStatus === 'pending_closure' ? 'selected' : ''}>⏳ Cierre</option>
-                          <option value="meeting_scheduled" ${t.customStatus === 'meeting_scheduled' ? 'selected' : ''}>📅 Reunión</option>
-                      </select>
-
-                      <input type="number" value="${t.progress || 0}" onchange="updateTaskProgress('${t.originDay}', '${t.id}', this.value)" 
-                             class="w-10 text-center text-xs border rounded h-7 bg-white/70">
-                      
-                      <button onclick="openActivityModal('${t.originDay}', '${t.id}')" class="text-[10px] bg-blue-500 text-white px-2 py-1 rounded font-bold shadow-sm">ACT</button>
-                      
-                      <button onclick="toggleKeyTask('${t.originDay}', '${t.id}')" title="Prioridad del Líder" 
-                              class="text-lg transition-all ${t.keyTask ? 'opacity-100' : 'opacity-20 grayscale hover:opacity-100'}">
-                          🔥
-                      </button>
-                      
-                      <button onclick="toggleDayHighlight('${todayKey}', '${t.id}')" class="${isHighlight ? 'text-yellow-500' : 'text-gray-300'} text-lg hover:scale-110">★</button>
-                  </div>
-              </div>
-          </div>`;
-      };
+        const renderCard = (t, cardBg) => {
+            const isHighlight = (t.id === dailyHighlightId);
+            return `
+            <div class="p-3 ${cardBg} rounded shadow-sm border mb-2 group transition-all hover:shadow-md ${t.priority === 'alta' ? 'border-l-4 border-l-red-500' : ''}">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm font-bold text-gray-800 truncate">${t.title}</div>
+                        <div class="text-[10px] text-gray-400 uppercase font-bold mt-1">🎯 ${t.objective || 'General'}</div>
+                        
+                        <div class="flex items-center gap-3 mt-2">
+                            <button onclick="openImpactModal('${t.id}')" class="text-[10px] ${t.impactExplanation ? 'text-blue-600 font-bold' : 'text-gray-400 underline'}">
+                                +Impacto
+                            </button>
+                            <button onclick="openUrgencyModal('${t.id}')" class="text-[10px] ${t.urgencyExplanation ? 'text-orange-500 font-bold' : 'text-gray-400 underline'}">
+                                +Urgencia
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0 ml-2">
+                        <input type="number" value="${t.progress || 0}" onchange="updateTaskProgress('${t.originDay}', '${t.id}', this.value)" 
+                               class="w-10 text-center text-xs border rounded h-7">
+                        <button onclick="toggleDayHighlight('${todayKey}', '${t.id}')" class="${isHighlight ? 'text-yellow-500' : 'text-gray-300'} text-lg">★</button>
+                    </div>
+                </div>
+            </div>`;
+        };
 
       const renderSection = (title, tasks, textColor, cardBg, icon) => {
           if (tasks.length === 0) return "";
