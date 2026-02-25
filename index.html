@@ -3835,15 +3835,21 @@ function addExperimento() {
 function deleteExperimento(i) { data.experimentos.splice(i,1); renderExperimentos(); }
 
 // --- RETRO ---
-function saveDailyRetro() {
-  const retro = document.getElementById("dailyRetro").value;
-  if (retro.trim()) {
-    data.history.push({ date: new Date().toISOString().split('T')[0], retro });
-    document.getElementById("dailyRetro").value = "";
-    renderHistory();
-    renderReport(); // 👈 también actualiza el reporte consolidado
+  function saveDailyRetro() {
+    const retroInput = document.getElementById("dailyRetro");
+    const retroText = retroInput.value.trim();
+    if (retroText) {
+      data.history.push({ 
+        date: new Date().toISOString().split('T')[0], 
+        retro: retroText 
+      });
+      retroInput.value = ""; // Limpiar el área
+      saveData();      // <--- IMPORTANTE: Guarda en el almacenamiento persistente
+      renderHistory(); // Refresca la lista en la pestaña Semana
+      renderReport();  // Refresca el reporte consolidado
+      alert("✅ Retro guardada exitosamente");
+    }
   }
-}
   function renderHistory() {
     const grouped = {};
     const todayStr = new Date().toISOString().split("T")[0]; // fecha actual YYYY-MM-DD
@@ -5233,19 +5239,48 @@ document.addEventListener("input", e => {
     }
 // 2. Procesa el JSON que te da el Gem
   function importFromIA() {
-      const input = document.getElementById("iaInput");
-      try {
-          const newData = JSON.parse(input.value);
-          if (confirm("⚠️ ¿Sincronizar con IA? Esto actualizará categorías y tareas en tu navegador.")) {
-              data = newData;
-              saveData(); // Guarda en localStorage, no en el archivo físico
-              renderAll();
-              input.value = "";
-              showToast("🤖 Tablero actualizado por la IA", "blue");
-          }
-      } catch (e) {
-          alert("❌ Error: Formato de JSON inválido.");
+    const input = document.getElementById("iaInput");
+    try {
+      const newData = JSON.parse(input.value);
+      if (!confirm("⚠️ ¿Sincronizar con IA? Esto SUMARÁ los nuevos datos sin borrar tus tareas actuales.")) return;
+
+      // 1. Sumar Categorías sin duplicar
+      if (newData.categories) {
+        data.categories = [...new Set([...data.categories, ...newData.categories])];
       }
+
+      // 2. Sumar Memoria Estratégica
+      if (newData.contextHistory) {
+        data.contextHistory = [...newData.contextHistory, ...data.contextHistory].slice(0, 50);
+      }
+
+      // 3. Sumar tareas día por día (evita duplicar por ID)
+      const daysKeys = ["Mon", "Tue", "Wed", "Thu", "Fri", "Next", "Backlog"];
+      daysKeys.forEach(day => {
+        if (newData.week && newData.week[day]) {
+          newData.week[day].forEach(newTask => {
+            const exists = data.week[day].some(t => t.id === newTask.id);
+            if (!exists) data.week[day].push(newTask);
+          });
+        }
+      });
+
+      // 4. Limpiar KPIs (convierte "0%" a número 0)
+      if (newData.kpis) {
+        newData.kpis.forEach(k => {
+          k.current = typeof k.current === 'string' ? parseFloat(k.current) || 0 : k.current;
+          k.target = typeof k.target === 'string' ? parseFloat(k.target) || 100 : k.target;
+        });
+        data.kpis = newData.kpis;
+      }
+
+      saveData();
+      renderAll();
+      input.value = "";
+      alert("🚀 Sincronización exitosa: Datos integrados.");
+    } catch (e) {
+      alert("❌ Error: El formato del JSON es inválido o tiene carácteres extraños.");
+    }
   }
 // 3. Renderiza la "Memoria Estratégica" (Contexto) en el Reporte
     function renderContextHistory() {
